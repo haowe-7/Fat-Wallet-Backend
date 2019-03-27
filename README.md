@@ -3,16 +3,21 @@
 ## 前置安装 
 
 docker
+
 docker-compose
+
 python3 (如果有package缺失请pip3 install)
+
 (linux or mac is recommended)
 
+教程请移步[docker环境配置](docs/docker.md)
+
 ## 启动
-```
-cd docker
-docker compose up -d
-cd ..
-python3 bootstrap.py
+```bash
+$ cd docker
+$ docker-compose up -d
+$ cd ..
+$ python3 bootstrap.py
 ```
 
 ## 文档
@@ -30,9 +35,9 @@ http://www.ruanyifeng.com/blog/2016/01/commit_message_change_log.html
 ## 协作开发方式
 
 1. 拉分支开发（命名与任务相关）
-2. 完成后发MR到主分支，大家review后进行merge
+2. 完成后发PR到主分支，大家review后进行merge
 
 ## 数据库连接
-```
-mysql -uroot --protocol=TCP --port=3307 -p
+```bash
+$ mysql -uroot --protocol=TCP --port=3307 -p
 ```
