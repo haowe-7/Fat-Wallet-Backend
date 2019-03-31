@@ -18,7 +18,6 @@ $ cd docker
 $ docker-compose up -d
 $ cd ..
 $ export FLASK_APP=bootstrap.py
-$ flask db migrate
 $ flask db upgrade
 $ flask run
 ```
