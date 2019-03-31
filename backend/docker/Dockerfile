@@ -1,0 +1,3 @@
+FROM mysql:5.7.22
+
+ENV MYSQL_DATABASE money

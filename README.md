@@ -10,14 +10,23 @@ python3 (如果有package缺失请pip3 install)
 
 (linux or mac is recommended)
 
-教程请移步[docker环境配置](docs/docker.md)
+教程请移步[docker环境配置](backend/docs/docker.md)
 
 ## 启动
 ```bash
 $ cd docker
 $ docker-compose up -d
 $ cd ..
-$ python3 bootstrap.py
+$ export FLASK_APP=bootstrap.py
+$ flask db migrate
+$ flask db upgrade
+$ flask run
+```
+
+## 更新数据库
+```
+$ flask db migrate
+$ flask db upgrade
 ```
 
 ## 文档
