@@ -23,7 +23,7 @@ $ flask db upgrade
 $ flask run
 ```
 
-## 更新数据库
+## 更新数据库(修改model后)
 ```
 $ flask db migrate
 $ flask db upgrade
