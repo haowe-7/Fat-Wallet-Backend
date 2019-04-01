@@ -1,11 +1,11 @@
 version: '2'
 services:
   db:
-    build: .
-    image: money-image
+    image: mysql:5.7.22
     ports:
       - 3307:3306
     container_name: money
     restart: always
     environment:
+      MYSQL_DATABASE: money
       MYSQL_ROOT_PASSWORD: admin
