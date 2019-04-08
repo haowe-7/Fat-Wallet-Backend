@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -e
+umask 022
+
+cd ${PROJECT_ROOT}
+# exec python3 bootstrap.py

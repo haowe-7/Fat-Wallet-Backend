@@ -1,11 +1,28 @@
 version: '2'
 services:
-  db:
-    image: mysql:5.7.22
+  web:
+    build: images/python
+    links:
+      - mysql
+      - redis
+    environment:
+      PROJECT_ROOT: /opt/fat-wallet/backend
+    working_dir: /opt/fat-wallet/backend
+    volumes:
+      - ../..:/opt/fat-wallet
+      - ./dev/profile:/root/.bashrc
+      - ./dev/web_run:/etc/service/web/run
     ports:
-      - 3307:3306
-    container_name: money
+      - 5000:5000
+    restart: always
+  mysql:
+    image: mysql:5.7.22
     restart: always
     environment:
       MYSQL_DATABASE: money
       MYSQL_ROOT_PASSWORD: admin
+  redis:
+    image: redis:alpine
+    ports:
+      - 6379:6379
+    restart: always
