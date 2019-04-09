@@ -12,7 +12,7 @@ docker-compose
 ```bash
 $ cd docker
 $ docker-compose up -d
-$ docker-compose exec web bash
+$ docker-compose exec money bash
 $ flask db upgrade
 $ flask run --host=0.0.0.0
 ```
@@ -20,7 +20,7 @@ $ flask run --host=0.0.0.0
 ## 更新数据库(修改model后)
 ```
 $ cd docker
-$ docker-compose exec web bash
+$ docker-compose exec money bash
 $ flask db migrate
 $ flask db upgrade
 ```
@@ -28,7 +28,7 @@ $ flask db upgrade
 ## 删除所有容器
 ```
 $ cd docker
-$ ./clean.sh
+$ sh clean.sh
 ```
 
 ## 文档
