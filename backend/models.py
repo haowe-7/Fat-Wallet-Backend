@@ -1,9 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from backend import app
+from . import app
 import os
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:admin@127.0.0.1:3307/money'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin@mysql/money'
 app.config['SECRET_KEY'] = os.urandom(24)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)

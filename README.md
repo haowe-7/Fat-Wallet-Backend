@@ -6,26 +6,29 @@ docker
 
 docker-compose
 
-python3 (如果有package缺失请pip3 install)
-
-(linux or mac is recommended)
-
 教程请移步[docker环境配置](backend/docs/docker.md)
 
-## 启动
+## 部署开发环境
 ```bash
 $ cd docker
 $ docker-compose up -d
-$ cd ..
-$ export FLASK_APP=bootstrap.py
+$ docker-compose exec money bash
 $ flask db upgrade
-$ flask run
+$ flask run --host=0.0.0.0
 ```
 
 ## 更新数据库(修改model后)
 ```
+$ cd docker
+$ docker-compose exec money bash
 $ flask db migrate
 $ flask db upgrade
+```
+
+## 删除所有容器
+```
+$ cd docker
+$ sh clean.sh
 ```
 
 ## 文档
@@ -47,5 +50,7 @@ http://www.ruanyifeng.com/blog/2016/01/commit_message_change_log.html
 
 ## 数据库连接
 ```bash
-$ mysql -uroot --protocol=TCP --port=3307 -p
+$ cd docker
+$ docker-compose exec mysql bash
+$ docker-compose exec redis bash(不可用)
 ```
