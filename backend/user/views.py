@@ -9,9 +9,8 @@ blueprint = Blueprint('user', __name__)
 
 
 class UserResource(Resource):
-    @auth_middleware
-    def get(self, username):
-        return {'hello': username}
+    def get(self):
+        return 'hello'
 
     def post(self):
         print(request.get_json())
@@ -44,7 +43,7 @@ class UserResource(Resource):
 @blueprint.route('/bp')
 def show_user_profile():
     # show the user profile for that user
-    ed_user = User(student_id="16340017", username="cf")
-    db.session.add(ed_user)
-    db.session.commit()
+    # ed_user = User(student_id="16340017", username="cf")
+    # db.session.add(ed_user)
+    # db.session.commit()
     return "good"
