@@ -1,5 +1,8 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from sqlalchemy import TEXT
+from sqlalchemy.dialects.mysql import BIGINT
+from enum import Enum
 from . import app
 import os
 
@@ -18,10 +21,37 @@ class MyMixin(object):
 
 class User(db.Model, MyMixin):
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(BIGINT(unsigned=True), primary_key=True)
     student_id = db.Column(db.String(10), unique=True, nullable=False)
     username = db.Column(db.String(20), unique=True, nullable=False)
-    password = db.Column(db.String(40))
+    password = db.Column(db.String(40), nullable=False)
     major = db.Column(db.String(20))
     email = db.Column(db.String(30))
     phone = db.Column(db.String(20))
+
+    @staticmethod
+    def get_by_username(username):
+        if not username:
+            return None
+        return User.query.filter_by(username=username).first()
+
+    @staticmethod
+    def get_by_student_id(student_id):
+        if not student_id:
+            return None
+        return User.query.filter_by(student_id=student_id).first()
+
+
+class TaskType(Enum):
+    QUESTIONNAIRE = 1  # 问卷调查
+    RECRUITMENT = 2  # 协会招新
+    EXPRESS = 3  # 快递
+
+
+class Task(db.Model, MyMixin):
+    __tablename__ = 'tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer)
+    task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value)
+    reward = db.Column(db.Integer, default=0)
+    description = db.Column(TEXT)

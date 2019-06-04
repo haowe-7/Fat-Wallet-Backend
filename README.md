@@ -13,22 +13,23 @@ docker-compose
 $ cd docker
 $ docker-compose up -d
 $ docker-compose exec money bash
-$ flask db upgrade
+$ flask db upgrade head
+$ python3 -m unittest tests/test_init.py (假数据)
 $ flask run --host=0.0.0.0
 ```
 
-## 更新数据库(修改model后)
+## 修改model后修改migrations文件
 ```
 $ cd docker
 $ docker-compose exec money bash
 $ flask db migrate
-$ flask db upgrade
+$ flask db upgrade (更新本地数据库)
 ```
 
 ## 删除所有容器
 ```
 $ cd docker
-$ sh clean.sh
+$ docker-compose down
 ```
 
 ## 文档
@@ -52,5 +53,4 @@ http://www.ruanyifeng.com/blog/2016/01/commit_message_change_log.html
 ```bash
 $ cd docker
 $ docker-compose exec mysql bash
-$ docker-compose exec redis bash(不可用)
 ```

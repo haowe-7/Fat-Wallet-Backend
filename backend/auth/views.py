@@ -15,7 +15,7 @@ def login():
     username = request.get_json()['username']
     password = request.get_json()['password']
     pass_md5 = hashlib.md5(password.encode(encoding='UTF-8')).hexdigest()
-    user = User.query.filter_by(username=username).first()
+    user = User.get_by_username(username)
     if not user:
         return 'account doen\'t exist', 400
     elif user.password != pass_md5:
@@ -26,7 +26,7 @@ def login():
         resp.response = 'login success'
         session_id = random_helper()
         resp.set_cookie('fat-wallet', session_id, max_age=300)
-        session[session_id] = username
+        session[session_id] = user.id
     return resp
 
 
@@ -36,9 +36,9 @@ def logout():
     resp = make_response()
     session_id = cookie.get('fat-wallet')
     if session_id:
-        username = session.get(session_id, None)
+        user_id = session.get(session_id, None)
         resp.delete_cookie('fat-wallet')
-        if username:
+        if user_id:
             session.pop(session_id)
             resp.status_code = 200
             resp.response = 'logout success'

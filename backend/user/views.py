@@ -1,10 +1,7 @@
-from flask import Blueprint, request, make_response
+from flask import Blueprint, request
 from flask_restful import Resource
 from backend.models import db, User
-import hashlib
-from backend.auth.helpers import auth_middleware
-
-
+from backend.auth.helpers import encrypt_helper
 blueprint = Blueprint('user', __name__)
 
 
@@ -13,37 +10,24 @@ class UserResource(Resource):
         return 'hello'
 
     def post(self):
-        print(request.get_json())
-        username = request.get_json()['username']
-        student_id = request.get_json()['student_id']
-        password = request.get_json()['password']
-        email = request.get_json()['email']
-        major = request.get_json()['email']
-        phone = request.get_json()['phone']
-        # password encryption
-        pass_md5 = hashlib.md5(password.encode(encoding='UTF-8')).hexdigest()
-        print(pass_md5)
-        resp = make_response()
-        resp.headers['content-type'] = 'text/plain'
-        if User.query.filter_by(student_id=student_id).first():
-            resp.status_code = 400
-            resp.response = 'you have already registered'
-        else:
-            # insert into database
-            user = User(username=username, student_id=student_id, password=pass_md5, email=email,
-                        major=major, phone=phone)
-            db.session.add(user)
-            db.session.commit()
-            
-            resp.status_code = 200
-            resp.response = 'register success!'
-        return resp
-
-
-@blueprint.route('/bp')
-def show_user_profile():
-    # show the user profile for that user
-    # ed_user = User(student_id="16340017", username="cf")
-    # db.session.add(ed_user)
-    # db.session.commit()
-    return "good"
+        form = request.get_json()
+        username = form.get('username')
+        if not username:
+            return dict(error='username required'), 400
+        student_id = form.get('student_id')
+        if not student_id:
+            return dict(error='student id required'), 400
+        password = form.get('password')
+        if not password:
+            return dict(error='password required'), 400
+        email = form.get('email')
+        major = form.get('major')
+        phone = form.get('phone')
+        pass_md5 = encrypt_helper(password)
+        if User.get_by_student_id(student_id):
+            return dict(error='you have already registered'), 400
+        user = User(username=username, student_id=student_id, password=pass_md5, email=email,
+                    major=major, phone=phone)
+        db.session.add(user)
+        db.session.commit()
+        return dict(data='register success!'), 200

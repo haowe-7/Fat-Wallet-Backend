@@ -16,7 +16,7 @@ services:
       - 5000:5000
     restart: always
   mysql:
-    image: mysql:5.7.22
+    image: mysql:5.7
     restart: always
     environment:
       MYSQL_DATABASE: money
