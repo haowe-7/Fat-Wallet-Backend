@@ -11,6 +11,6 @@ def setup(app):
     app.register_blueprint(user_blueprint)
     app.register_blueprint(auth_blueprint)
 
-    api.add_resource(UserResource, '/users')
-    api.add_resource(TaskResource, '/tasks')
-    api.add_resource(CommentResource, '/comments')
+    api.add_resource(UserResource, '/users/')
+    api.add_resource(TaskResource, '/tasks/')
+    api.add_resource(CommentResource, '/comments/')

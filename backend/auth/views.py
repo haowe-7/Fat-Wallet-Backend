@@ -1,6 +1,7 @@
-from flask import Blueprint, request, make_response, session
+from flask import Blueprint, request, make_response, session, jsonify
 from backend.models import User
 from .helpers import auth_helper
+import json
 import hashlib
 import random
 import string
@@ -12,21 +13,26 @@ blueprint = Blueprint('auth', __name__)
 def login():
     if auth_helper():
         return 'already login', 200
-    username = request.get_json()['username']
-    password = request.get_json()['password']
+    form = request.get_json(True, True)
+    username = form.get("username")
+    password = form.get("password")
     pass_md5 = hashlib.md5(password.encode(encoding='UTF-8')).hexdigest()
-    user = User.get_by_username(username)
+    user = User.get(username=username)
     if not user:
-        return 'account doen\'t exist', 400
-    elif user.password != pass_md5:
-        return 'incorrect password', 400
-    else:
-        resp = make_response()
-        resp.status_code = 200
-        resp.response = 'login success'
-        session_id = random_helper()
-        resp.set_cookie('fat-wallet', session_id, max_age=300)
-        session[session_id] = user.id
+        return jsonify(error='account doen\'t exist'), 400
+    user = user[0]
+    if user.password != pass_md5:
+        return jsonify(error='incorrect password'), 400
+    resp = make_response()
+    resp.status_code = 200
+    data = dict(user_id=user.id, student_id=user.student_id,
+                username=user.username, major=user.major,
+                email=user.email, phone= user.phone,
+                avatar=user.avatar.decode())
+    resp.response = json.dumps(data)
+    session_id = random_helper()
+    resp.set_cookie('fat-wallet', session_id, max_age=300)
+    session[session_id] = user.id
     return resp
 
 
@@ -40,12 +46,8 @@ def logout():
         resp.delete_cookie('fat-wallet')
         if user_id:
             session.pop(session_id)
-            resp.status_code = 200
-            resp.response = 'logout success'
-            return resp
-    resp.status_code = 400
-    resp.response = 'You haven\'t login'
-    return resp
+            return jsonify(data='logout success'), 200
+    return jsonify(error='You haven\'t login'), 400
 
 
 def random_helper():

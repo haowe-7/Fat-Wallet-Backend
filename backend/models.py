@@ -22,7 +22,7 @@ class MyMixin(object):
 class User(db.Model, MyMixin):
     __tablename__ = 'users'
     id = db.Column(BIGINT(unsigned=True), primary_key=True)
-    student_id = db.Column(db.String(10), unique=True, nullable=False)
+    student_id = db.Column(db.String(10), unique=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(40), nullable=False)
     major = db.Column(db.String(20))
@@ -31,16 +31,35 @@ class User(db.Model, MyMixin):
     avatar = db.Column(db.Binary(2**21-1))
 
     @staticmethod
-    def get_by_username(username):
-        if not username:
-            return None
-        return User.query.filter_by(username=username).first()
+    def get(user_id=None, student_id=None, username=None):
+        q = User.query
+        if user_id:
+            q = q.filter(User.id == user_id)
+        if student_id:
+            q = q.filter(User.student_id == student_id)
+        if username:
+            q = q.filter(User.username == username)
+        return q.all()
 
     @staticmethod
-    def get_by_student_id(student_id):
-        if not student_id:
-            return None
-        return User.query.filter_by(student_id=student_id).first()
+    def patch(user_id, student_id=None, password=None, email=None, major=None, phone=None, avatar=None):
+        if user_id:
+            user = User.query.filter(User.id == user_id).first()
+            if not user:
+                return
+            if student_id:
+                user.student_id = student_id
+            if password:
+                user.password = password
+            if email:
+                user.email = email
+            if major:
+                user.major = major
+            if phone:
+                user.phone = phone
+            if avatar:
+                user.avatar = avatar
+            db.session.commit()
 
 
 class TaskType(Enum):
@@ -79,14 +98,36 @@ class Comment(db.Model, MyMixin):
 
 class Collect(db.Model, MyMixin):
     __tablename__ = 'collects'
+    __table_args__ =  (db.UniqueConstraint('user_id', 'task_id', name='_collect_uc'),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)
 
+    @staticmethod
+    def get(user_id=None, task_id=None, collect_id=None):
+        q = Collect.query
+        if user_id:
+            q = q.filter(Collect.user_id == user_id)
+        if task_id:
+            q = q.filter(Collect.task_id == task_id)
+        if collect_id:
+            q = q.filter(Collect.id == collect_id)
+        return q.all()
 
 class Participate(db.Model, MyMixin):
     __tablename__ = 'participates'
+    __table_args__ =  (db.UniqueConstraint('user_id', 'task_id', name='_participate_uc'),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)
 
+    @staticmethod
+    def get(user_id=None, task_id=None, participate_id=None):
+        q = Participate.query
+        if user_id:
+            q = q.filter(Participate.user_id == user_id)
+        if task_id:
+            q = q.filter(Participate.task_id == task_id)
+        if participate_id:
+            q = q.filter(Participate.id == participate_id)
+        return q.all()
