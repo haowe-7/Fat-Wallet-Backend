@@ -28,6 +28,7 @@ class User(db.Model, MyMixin):
     major = db.Column(db.String(20))
     email = db.Column(db.String(30))
     phone = db.Column(db.String(20))
+    avatar = db.Column(db.Binary(2**21-1))
 
     @staticmethod
     def get_by_username(username):
@@ -55,3 +56,37 @@ class Task(db.Model, MyMixin):
     task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value)
     reward = db.Column(db.Integer, default=0)
     description = db.Column(TEXT)
+
+
+class Comment(db.Model, MyMixin):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    task_id = db.Column(db.Integer)
+    content = db.Column(db.String(100))
+
+    @staticmethod
+    def get(user_id=None, task_id=None, comment_id=None):
+        q = Comment.query
+        if user_id:
+            q = q.filter(Comment.user_id == user_id)
+        if task_id:
+            q = q.filter(Comment.task_id == task_id)
+        if comment_id:
+            q = q.filter(Comment.id == comment_id)
+        return q.all()
+
+
+class Collect(db.Model, MyMixin):
+    __tablename__ = 'collects'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    task_id = db.Column(db.Integer)
+
+
+class Participate(db.Model, MyMixin):
+    __tablename__ = 'participates'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    task_id = db.Column(db.Integer)
+

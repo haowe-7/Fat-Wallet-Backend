@@ -3,6 +3,7 @@ from .user.views import blueprint as user_blueprint
 from .user.views import UserResource
 from .auth.views import blueprint as auth_blueprint
 from .task.views import TaskResource
+from .comment.views import CommentResource
 
 
 def setup(app):
@@ -12,3 +13,4 @@ def setup(app):
 
     api.add_resource(UserResource, '/users')
     api.add_resource(TaskResource, '/tasks')
+    api.add_resource(CommentResource, '/comments')
