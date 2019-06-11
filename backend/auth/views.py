@@ -39,15 +39,9 @@ def login():
 @blueprint.route('/logout', methods=['POST'])
 def logout():
     cookie = request.cookies
-    resp = make_response()
     session_id = cookie.get('fat-wallet')
-    if session_id:
-        user_id = session.get(session_id, None)
-        resp.delete_cookie('fat-wallet')
-        if user_id:
-            session.pop(session_id)
-            return jsonify(data='logout success'), 200
-    return jsonify(error='You haven\'t login'), 400
+    session.pop(session_id)
+    return jsonify(data='logout success'), 200
 
 
 def random_helper():

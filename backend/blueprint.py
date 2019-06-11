@@ -8,7 +8,7 @@ from .comment.views import CommentResource
 
 def setup(app):
     api = Api(app)
-    app.register_blueprint(user_blueprint)
+    app.register_blueprint(user_blueprint, url_prefix='/users')
     app.register_blueprint(auth_blueprint)
 
     api.add_resource(UserResource, '/users/')
