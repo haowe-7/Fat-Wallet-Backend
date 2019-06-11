@@ -4,6 +4,8 @@ from backend.user.views import UserResource
 from backend.auth.views import blueprint as auth_blueprint
 from backend.task.views import TaskResource
 from backend.comment.views import CommentResource
+from backend.participate.views import ParticipateResource
+from backend.collect.views import CollectResource
 
 
 def setup(app):
@@ -14,3 +16,5 @@ def setup(app):
     api.add_resource(UserResource, '/users/')
     api.add_resource(TaskResource, '/tasks/')
     api.add_resource(CommentResource, '/comments/')
+    api.add_resource(ParticipateResource, '/part/')
+    api.add_resource(CollectResource, '/collect/')
