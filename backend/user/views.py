@@ -40,13 +40,12 @@ class UserResource(Resource):
             return dict(error="aaa"), 400  # FIXME catch unique异常
         return dict(data='register success!'), 200
 
-    def patch(self):  #　不能修改username
+    def patch(self):  #　不涉及username,password的修改
         form = request.get_json(True, True)
         user_id = auth_helper()
         if not form:
             return dict(error="form is empty"), 400
         student_id = form.get("student_id")
-        password = form.get("password")
         if password:
             password = encrypt_helper(password)
         email = form.get("email")
@@ -54,8 +53,8 @@ class UserResource(Resource):
         phone = form.get("phone")
         avatar = form.get("avatar")
         User.patch(user_id=user_id, student_id=student_id,
-                   password=password, email=email,
-                   major=major, phone=phone, avatar=avatar.encode('utf-8'))
+                   email=email, major=major, phone=phone,
+                   avatar=avatar.encode('utf-8') if avatar else None)
         return dict(data='ok'), 200
 
 

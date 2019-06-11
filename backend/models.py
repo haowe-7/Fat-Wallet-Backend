@@ -26,9 +26,9 @@ class User(db.Model, MyMixin):
     username = db.Column(db.String(20), unique=True, nullable=False)
     password = db.Column(db.String(40), nullable=False)
     major = db.Column(db.String(20))
-    email = db.Column(db.String(30))
-    phone = db.Column(db.String(20))
-    avatar = db.Column(db.Binary(2**21-1))
+    email = db.Column(db.String(30), unique=True)
+    phone = db.Column(db.String(20), unique=True)
+    avatar = db.Column(db.Binary(2**21-1))  # 2M
 
     @staticmethod
     def get(user_id=None, student_id=None, username=None):
