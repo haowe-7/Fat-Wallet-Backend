@@ -32,7 +32,7 @@ class TestInit(unittest.TestCase):
         participate1 = Participate(user_id=1, task_id=1)
         db.session.add(participate1)
         participate2 = Participate(user_id=1, task_id=2)
-        db.session.add(participate2)        
+        db.session.add(participate2)
 
         db.session.commit()
 

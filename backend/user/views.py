@@ -1,20 +1,20 @@
-from flask import Blueprint, request, make_response, session, jsonify
+from flask import Blueprint, request, session, jsonify
 from flask_restful import Resource
 from backend.models import db, User
 from backend.auth.helpers import encrypt_helper, auth_helper
 from sqlalchemy import exc
 import logging
-import json
 import re
 blueprint = Blueprint('user', __name__)
 
 
 class UserResource(Resource):
     def get(self):
-        id =  request.args.get("user_id")
         student_id = request.args.get("student_id")
         username = request.args.get("username")
-        users = User.get(user_id=id, student_id=student_id, username=username)
+        min_id = request.args.get("min_id")
+        max_id = request.args.get("max_id")
+        users = User.get(student_id=student_id, username=username, min_id=min_id, max_id=max_id)
         result = [{"user_id": user.id, "student_id": user.student_id,
                    "username": user.username, "major": user.major,
                    "email": user.email, "phone": user.phone,
@@ -26,26 +26,23 @@ class UserResource(Resource):
         username = form.get('username')
         if not username:
             return dict(error='username required'), 400
-        student_id = form.get('student_id')
         password = form.get('password')
         if not password:
             return dict(error='password required'), 400
         email = form.get('email')
-        major = form.get('major')
-        phone = form.get('phone')
         pass_md5 = encrypt_helper(password)
         try:
             user = User(username=username, password=pass_md5, email=email)
             db.session.add(user)
             db.session.commit()
         except exc.IntegrityError as e:
-            if re.search("Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
+            if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
                 logging.error(f"create user failed, msg: {e}")
-                column = re.findall("'\S*'", e.orig.args[1])[1].strip("'")
+                column = re.findall(r"'\S*'", e.orig.args[1])[1].strip("'")
                 return dict(error=f"{column} has been used"), 400
         return dict(data='register success!'), 200
 
-    def patch(self):  #　不涉及username,password的修改
+    def patch(self):  # 不涉及username,password的修改
         form = request.get_json(True, True)
         user_id = auth_helper()
         if not form:
@@ -57,15 +54,14 @@ class UserResource(Resource):
         avatar = form.get("avatar")
         try:
             User.patch(user_id=user_id, student_id=student_id,
-                    email=email, major=major, phone=phone,
-                    avatar=avatar.encode('utf-8') if avatar else None)
+                       email=email, major=major, phone=phone,
+                       avatar=avatar.encode('utf-8') if avatar else None)
         except exc.IntegrityError as e:
-            if re.search("Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
+            if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
                 logging.error(f"patch user failed, msg: {e}")
-                column = re.findall("'\S*'", e.orig.args[1])[1].strip("'")
+                column = re.findall(r"'\S*'", e.orig.args[1])[1].strip("'")
                 return dict(error=f"{column} has been used"), 400
         return dict(data='ok'), 200
-
 
 
 @blueprint.route('/password', methods=['PUT'])
@@ -81,4 +77,3 @@ def update_password():
     session_id = cookie.get('fat-wallet')
     session.pop(session_id)
     return jsonify(data="ok"), 200
-

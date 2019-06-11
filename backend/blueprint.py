@@ -1,9 +1,9 @@
 from flask_restful import Api
-from .user.views import blueprint as user_blueprint
-from .user.views import UserResource
-from .auth.views import blueprint as auth_blueprint
-from .task.views import TaskResource
-from .comment.views import CommentResource
+from backend.user.views import blueprint as user_blueprint
+from backend.user.views import UserResource
+from backend.auth.views import blueprint as auth_blueprint
+from backend.task.views import TaskResource
+from backend.comment.views import CommentResource
 
 
 def setup(app):

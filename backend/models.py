@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from sqlalchemy import TEXT
 from sqlalchemy.dialects.mysql import BIGINT
 from enum import Enum
-from . import app
+from backend import app
 import os
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin@mysql/money'
@@ -28,17 +28,19 @@ class User(db.Model, MyMixin):
     major = db.Column(db.String(20))
     email = db.Column(db.String(30), unique=True)
     phone = db.Column(db.String(20), unique=True)
-    avatar = db.Column(db.Binary(2**21-1))  # 2M
+    avatar = db.Column(db.Binary(2**21 - 1))  # 2M
 
     @staticmethod
-    def get(user_id=None, student_id=None, username=None):
+    def get(student_id=None, username=None, min_id=None, max_id=None):
         q = User.query
-        if user_id:
-            q = q.filter(User.id == user_id)
         if student_id:
             q = q.filter(User.student_id == student_id)
         if username:
             q = q.filter(User.username == username)
+        if min_id:
+            q = q.filter(User.id >= min_id)
+        if max_id:
+            q = q.filter(User.id <= max_id)
         return q.all()
 
     @staticmethod
@@ -70,15 +72,38 @@ class TaskType(Enum):
 
 class Task(db.Model, MyMixin):
     __tablename__ = 'tasks'
+    __table_args__ = (db.ForeignKeyConstraint(['creator_id'], ['users.id'],
+                      name='task_user_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer)
     task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value)
     reward = db.Column(db.Integer, default=0)
     description = db.Column(TEXT)
 
+    @staticmethod
+    def get(creator_id=None, task_type=None, min_reward=None, max_reward=None, min_id=None, max_id=None):
+        q = Task.query
+        if creator_id:
+            q = q.filter(Task.creator_id == creator_id)
+        if task_type:
+            q = q.filter(Task.task_type == task_type)
+        if min_reward:
+            q = q.filter(Task.reward >= min_reward)
+        if max_reward:
+            q = q.filter(Task.reward <= max_reward)
+        if min_id:
+            q = q.filter(Task.id >= min_id)
+        if max_id:
+            q = q.filter(Task.id <= max_id)
+        return q.all()
+
 
 class Comment(db.Model, MyMixin):
     __tablename__ = 'comments'
+    __table_args__ = (db.ForeignKeyConstraint(['user_id'], ['users.id'],
+                      name='comment_user_fc', ondelete="CASCADE"),
+                      db.ForeignKeyConstraint(['task_id'], ['tasks.id'],
+                      name='comment_task_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)
@@ -98,7 +123,11 @@ class Comment(db.Model, MyMixin):
 
 class Collect(db.Model, MyMixin):
     __tablename__ = 'collects'
-    __table_args__ =  (db.UniqueConstraint('user_id', 'task_id', name='_collect_uc'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'task_id', name='_collect_uc'),
+                      db.ForeignKeyConstraint(['user_id'], ['users.id'],
+                      name='collect_user_fc', ondelete="CASCADE"),
+                      db.ForeignKeyConstraint(['task_id'], ['tasks.id'],
+                      name='collect_task_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)
@@ -114,9 +143,14 @@ class Collect(db.Model, MyMixin):
             q = q.filter(Collect.id == collect_id)
         return q.all()
 
+
 class Participate(db.Model, MyMixin):
     __tablename__ = 'participates'
-    __table_args__ =  (db.UniqueConstraint('user_id', 'task_id', name='_participate_uc'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'task_id', name='_participate_uc'),
+                      db.ForeignKeyConstraint(['user_id'], ['users.id'],
+                      name='participate_user_fc', ondelete="CASCADE"),
+                      db.ForeignKeyConstraint(['task_id'], ['tasks.id'],
+                      name='participate_task_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)

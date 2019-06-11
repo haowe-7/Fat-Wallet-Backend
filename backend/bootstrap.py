@@ -1,6 +1,6 @@
 # from app import app
-from . import app
-from .blueprint import setup
+from backend import app
+from backend.blueprint import setup
 from flask import request, session, jsonify
 import logging
 

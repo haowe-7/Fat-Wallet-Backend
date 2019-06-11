@@ -1,6 +1,6 @@
 from flask import Blueprint, request, make_response, session, jsonify
 from backend.models import User
-from .helpers import auth_helper
+from backend.auth.helpers import auth_helper
 import json
 import hashlib
 import random

@@ -54,3 +54,16 @@ http://www.ruanyifeng.com/blog/2016/01/commit_message_change_log.html
 $ cd docker
 $ docker-compose exec mysql bash
 ```
+
+## 代码风格
+**vscode setting**
+```
+{
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true,
+    "python.linting.flake8Args": [
+        "--ignore", "E501"
+    ],
+}
+```
