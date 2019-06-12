@@ -81,6 +81,7 @@ class Task(db.Model, MyMixin):
     start_time = db.Column(db.DateTime)  # 任务开始时间
     due_time = db.Column(db.DateTime)  # 任务截止时间
     max_participate = db.Column(db.Integer)  # 参与人数上限
+    # image = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
     def get(task_id=None, creator_id=None, task_type=None, min_reward=None, max_reward=None, offset=None, limit=None):

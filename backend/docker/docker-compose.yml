@@ -21,6 +21,18 @@ services:
     environment:
       MYSQL_DATABASE: money
       MYSQL_ROOT_PASSWORD: admin
+  celery:
+    build: images/python
+# celery -A backend.celery.config:celery beat --config=backend.celery.config --loglev=DEBUG
+    command: celery -A backend.celery.config:celery worker --config=backend.celery.config -B
+    working_dir: /opt/fat-wallet/backend
+    volumes:
+      - ../..:/opt/fat-wallet
+    environment:
+      PYTHONPATH: /opt/fat-wallet
+    links:
+      - mysql
+      - redis
   redis:
     image: redis:alpine
     ports:

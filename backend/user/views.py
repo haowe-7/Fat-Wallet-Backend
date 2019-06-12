@@ -5,6 +5,7 @@ from backend.auth.helpers import encrypt_helper, auth_helper
 from sqlalchemy import exc
 import logging
 import re
+from backend.celery.config import celery
 blueprint = Blueprint('user', __name__)
 
 
@@ -85,3 +86,11 @@ def update_password():
     session_id = cookie.get('fat-wallet')
     session.pop(session_id)
     return jsonify(data="ok"), 200
+
+
+@celery.task()
+def test():
+    user = User.get(student_id=1)[0]
+    import time
+    user.major = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    db.session.commit()
