@@ -5,34 +5,32 @@ from backend.models import db, User, Task, Comment, Collect, Participate
 
 class TestInit(unittest.TestCase):
     def test_init(self):
-        user1 = User(student_id="1", username="ct",
-                     password=encrypt_helper("123"), email="bz@163.com",
-                     phone="123")
-        db.session.add(user1)
-        user2 = User(student_id="2", username="csm",
-                     password=encrypt_helper("123"), email="csm@163.com",
-                     phone="1233")
-        db.session.add(user2)
+        for i in range(0, 10):
+            user = User(id=i + 1, student_id=f"{i+1}", username=f"ct{i+1}",
+                        password=encrypt_helper("123"), email=f"bz{i}@163.com",
+                        phone=f"123{i}")
+            db.session.add(user)
+            db.session.flush()
 
-        task1 = Task(creator_id=1, task_type=1, reward=100, description="jmfmjj")
-        db.session.add(task1)
-        task2 = Task(creator_id=1, task_type=2, reward=100, description="cbbmjj")
-        db.session.add(task2)
+        for i in range(0, 10):
+            task = Task(id=i + 1, creator_id=f"{i%2+1}", task_type=f"{i%3+1}", reward=100, description="jmfmjj")
+            db.session.add(task)
+            db.session.flush()
 
-        comment1 = Comment(user_id=1, task_id=1, content="Nice!")
-        db.session.add(comment1)
-        comment2 = Comment(user_id=1, task_id=2, content="Great!")
-        db.session.add(comment2)
+        for i in range(0, 10):
+            comment = Comment(user_id=f"{i%2+1}", task_id=f"{i+1}", content="Nice!")
+            db.session.add(comment)
+            db.session.flush()
 
-        collect1 = Collect(user_id=1, task_id=1)
-        db.session.add(collect1)
-        collect2 = Collect(user_id=1, task_id=2)
-        db.session.add(collect2)
+        for i in range(0, 10):
+            collect = Collect(user_id=f"{i%2+1}", task_id=f"{i+1}")
+            db.session.add(collect)
+            db.session.flush()
 
-        participate1 = Participate(user_id=1, task_id=1)
-        db.session.add(participate1)
-        participate2 = Participate(user_id=1, task_id=2)
-        db.session.add(participate2)
+        for i in range(0, 10):
+            participate = Participate(user_id=f"{i%2+1}", task_id=f"{i+1}")
+            db.session.add(participate)
+            db.session.flush()
 
         db.session.commit()
 

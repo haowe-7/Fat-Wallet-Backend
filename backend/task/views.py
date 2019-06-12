@@ -11,14 +11,14 @@ class TaskResource(Resource):
         task_type = request.args.get("task_type")
         min_reward = request.args.get("min_reward")
         max_reward = request.args.get("max_reward")
-        min_id = request.args.get("min_id")
-        max_id = request.args.get("max_id")
+        offset = request.args.get("offset")
+        limit = request.args.get("limit")
         tasks = Task.get(creator_id=creator_id, task_type=task_type,
                          min_reward=min_reward, max_reward=max_reward,
-                         min_id=min_id, max_id=max_id)
+                         offset=offset, limit=limit)
         result = [{"id": task.id, "task_type": task.task_type,
                    "reward": task.reward, "description": task.description} for task in tasks]
-        return result
+        return dict(data=result, count=len(result)), 200
 
     def post(self):
         creator_id = auth_helper()

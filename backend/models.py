@@ -28,19 +28,17 @@ class User(db.Model, MyMixin):
     major = db.Column(db.String(20))
     email = db.Column(db.String(30), unique=True)
     phone = db.Column(db.String(20), unique=True)
-    avatar = db.Column(db.Binary(2**21 - 1))  # 2M
+    avatar = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
-    def get(student_id=None, username=None, min_id=None, max_id=None):
+    def get(student_id=None, username=None, offset=None, limit=None):
         q = User.query
         if student_id:
             q = q.filter(User.student_id == student_id)
         if username:
             q = q.filter(User.username == username)
-        if min_id:
-            q = q.filter(User.id >= min_id)
-        if max_id:
-            q = q.filter(User.id <= max_id)
+        if offset and limit:
+            q = q.filter(User.id >= offset, User.id < offset + limit)
         return q.all()
 
     @staticmethod
@@ -81,7 +79,7 @@ class Task(db.Model, MyMixin):
     description = db.Column(TEXT)
 
     @staticmethod
-    def get(creator_id=None, task_type=None, min_reward=None, max_reward=None, min_id=None, max_id=None):
+    def get(creator_id=None, task_type=None, min_reward=None, max_reward=None, offset=None, limit=None):
         q = Task.query
         if creator_id:
             q = q.filter(Task.creator_id == creator_id)
@@ -91,10 +89,8 @@ class Task(db.Model, MyMixin):
             q = q.filter(Task.reward >= min_reward)
         if max_reward:
             q = q.filter(Task.reward <= max_reward)
-        if min_id:
-            q = q.filter(Task.id >= min_id)
-        if max_id:
-            q = q.filter(Task.id <= max_id)
+        if offset and limit:
+            q = q.filter(Task.id >= offset, Task.id < offset + limit)
         return q.all()
 
 

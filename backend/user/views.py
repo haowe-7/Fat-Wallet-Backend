@@ -12,14 +12,14 @@ class UserResource(Resource):
     def get(self):
         student_id = request.args.get("student_id")
         username = request.args.get("username")
-        min_id = request.args.get("min_id")
-        max_id = request.args.get("max_id")
-        users = User.get(student_id=student_id, username=username, min_id=min_id, max_id=max_id)
+        offset = request.args.get("offset")
+        limit = request.args.get("limit")
+        users = User.get(student_id=student_id, username=username, offset=offset, limit=limit)
         result = [{"user_id": user.id, "student_id": user.student_id,
                    "username": user.username, "major": user.major,
                    "email": user.email, "phone": user.phone,
                    "avatar": user.avatar.decode() if user.avatar else None} for user in users]
-        return dict(data=result), 200
+        return dict(data=result, count=len(result)), 200
 
     def post(self):
         form = request.get_json(True, True)
