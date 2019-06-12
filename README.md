@@ -13,7 +13,7 @@ docker-compose
 $ cd docker
 $ docker-compose up -d
 $ docker-compose exec money bash
-$ flask db upgrade head
+$ flask db upgrade heads
 $ python3 -m unittest tests/test_init.py (假数据)
 $ flask run --host=0.0.0.0
 ```

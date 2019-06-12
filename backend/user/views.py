@@ -54,7 +54,7 @@ class UserResource(Resource):
         form = request.get_json(True, True)
         user_id = auth_helper()
         if not form:
-            return dict(error="form is empty"), 400
+            return dict(error="表单不能为空"), 400
         student_id = form.get("student_id")
         email = form.get("email")
         major = form.get("major")

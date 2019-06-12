@@ -13,7 +13,8 @@ class TestInit(unittest.TestCase):
             db.session.flush()
 
         for i in range(0, 10):
-            task = Task(id=i + 1, creator_id=f"{i%2+1}", task_type=f"{i%3+1}", reward=100, description="jmfmjj")
+            task = Task(id=i + 1, creator_id=f"{i%2+1}", task_type=f"{i%3+1}", reward=100, description="jmfmjj",
+                        due_time="2019-06-13 18:00:00", max_participate=i%3+1)
             db.session.add(task)
             db.session.flush()
 

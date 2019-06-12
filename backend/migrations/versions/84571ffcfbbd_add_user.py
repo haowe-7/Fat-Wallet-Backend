@@ -1,4 +1,4 @@
-"""empty message
+"""add user
 
 Revision ID: 84571ffcfbbd
 Revises: 
@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('student_id', sa.String(length=10), nullable=False),
     sa.Column('username', sa.String(length=20), nullable=False),
-    sa.Column('password', sa.String(length=40), nullable=True),
+    sa.Column('password', sa.String(length=40), nullable=False),
     sa.Column('major', sa.String(length=20), nullable=True),
     sa.Column('email', sa.String(length=30), nullable=True),
     sa.Column('phone', sa.String(length=20), nullable=True),

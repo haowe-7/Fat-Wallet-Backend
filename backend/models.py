@@ -38,7 +38,7 @@ class User(db.Model, MyMixin):
         if username:
             q = q.filter(User.username == username)
         if offset and limit:
-            q = q.filter(User.id >= offset, User.id < offset + limit)
+            q = q.filter(User.id >= offset, User.id < int(offset) + int(limit))
         return q.all()
 
     @staticmethod
@@ -74,13 +74,19 @@ class Task(db.Model, MyMixin):
                       name='task_user_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer)
-    task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value)
-    reward = db.Column(db.Integer, default=0)
-    description = db.Column(TEXT)
+    task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value)  # 任务类型
+    reward = db.Column(db.Integer, default=0)  # 任务赏金
+    description = db.Column(TEXT)    # 任务描述
+    status = db.Column(db.Boolean, default=False)  # 任务状态: 是否开放
+    start_time = db.Column(db.DateTime)  # 任务开始时间
+    due_time = db.Column(db.DateTime)  # 任务截止时间
+    max_participate = db.Column(db.Integer)  # 参与人数上限
 
     @staticmethod
-    def get(creator_id=None, task_type=None, min_reward=None, max_reward=None, offset=None, limit=None):
+    def get(task_id=None, creator_id=None, task_type=None, min_reward=None, max_reward=None, offset=None, limit=None):
         q = Task.query
+        if task_id:
+            q = q.filter(Task.id == task_id)
         if creator_id:
             q = q.filter(Task.creator_id == creator_id)
         if task_type:
@@ -90,8 +96,29 @@ class Task(db.Model, MyMixin):
         if max_reward:
             q = q.filter(Task.reward <= max_reward)
         if offset and limit:
-            q = q.filter(Task.id >= offset, Task.id < offset + limit)
+            q = q.filter(Task.id >= offset, Task.id < int(offset) + int(limit))
         return q.all()
+
+    @staticmethod
+    def patch(task_id, task_type=None, reward=None, description=None, 
+              start_time=None, due_time=None, max_participate=None):
+        if task_id:
+            task = Task.query.filter(Task.id == task_id).first()
+            if not task:
+                return
+            if task_type:
+                task.task_type = task_type
+            if reward:
+                task.reward = reward
+            if description:
+                task.description = description
+            if start_time:
+                task.start_time = start_time
+            if due_time:
+                task.due_time = due_time
+            if max_participate:
+                task.max_participate = max_participate
+            db.session.commit()
 
 
 class Comment(db.Model, MyMixin):
