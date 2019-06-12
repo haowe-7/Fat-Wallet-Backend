@@ -30,7 +30,7 @@ class ParticipateResource(Resource):
             db.session.add(participate)
             db.session.commit()
         except exc.IntegrityError as e:
-            logging.error(f'collect failed, msg: {e}')
+            logging.error(f'participate failed, msg: {e}')
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
                 return dict(error='不能重复参与该任务'), 400
             elif re.search(r"Cannot add or update a child row", e.orig.args[1]):

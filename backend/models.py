@@ -161,3 +161,21 @@ class Participate(db.Model, MyMixin):
         if participate_id:
             q = q.filter(Participate.id == participate_id)
         return q.all()
+
+
+class Message(db.Model, MyMixin):
+    __tablename__ = 'messages'
+    __table_args__ = (db.ForeignKeyConstraint(['user_id'], ['users.id'],
+                      name='message_user_fc', ondelete="CASCADE"),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    content = db.Column(db.String(100))
+
+    @staticmethod
+    def get(user_id=None, message_id=None):
+        q = Message.query
+        if user_id:
+            q = q.filter(Message.user_id == user_id)
+        if message_id:
+            q = q.filter(Message.id == message_id)
+        return q.all()

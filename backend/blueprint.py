@@ -6,6 +6,7 @@ from backend.task.views import TaskResource
 from backend.comment.views import CommentResource
 from backend.participate.views import ParticipateResource
 from backend.collect.views import CollectResource
+from backend.message.views import MessageResource
 
 
 def setup(app):
@@ -18,3 +19,4 @@ def setup(app):
     api.add_resource(CommentResource, '/comments/')
     api.add_resource(ParticipateResource, '/part/')
     api.add_resource(CollectResource, '/collect/')
+    api.add_resource(MessageResource, '/message/')
