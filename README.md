@@ -37,7 +37,7 @@ $ docker-compose down
 1. flask: a microframework http://flask.pocoo.org/docs/1.0/quickstart/
 2. blueprint: create modular application http://flask.pocoo.org/docs/1.0/blueprints/
 3. flask-restful: extension for flask to support building REST APIs https://flask-restful.readthedocs.io/en/latest/
-4. SQLAlchemy: database access https://docs.sqlalchemy.org/en/latest/orm/tutorial.html
+4. SQLAlchemy: database access https://flask-sqlalchemy.palletsprojects.com/en/2.x/
 5. celery: task queue http://flask.pocoo.org/docs/1.0/patterns/celery/
 
 ## commit规范
