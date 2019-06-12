@@ -16,6 +16,6 @@ def before_request():
     valid = session.get(session_id, None)
     if request.path not in valid_path and not valid:
         logging.error("invalid request is caught")
-        return jsonify(error='permission denied'), 403  # 不能用dict
+        return jsonify(error='您还没有登录'), 403  # 不能用dict
     if not valid and request.path == '/users/' and request.method != 'POST':
-        return jsonify(error='permission denied'), 403
+        return jsonify(error='您还没有登录'), 403

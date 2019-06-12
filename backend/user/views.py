@@ -8,6 +8,14 @@ import re
 blueprint = Blueprint('user', __name__)
 
 
+user_column_cn = {
+    "username": "用户名",
+    "email": "邮箱",
+    "student_id": "学号",
+    "phone": "手机号码"
+}
+
+
 class UserResource(Resource):
     def get(self):
         student_id = request.args.get("student_id")
@@ -25,10 +33,10 @@ class UserResource(Resource):
         form = request.get_json(True, True)
         username = form.get('username')
         if not username:
-            return dict(error='username required'), 400
+            return dict(error='用户名不能为空'), 400
         password = form.get('password')
         if not password:
-            return dict(error='password required'), 400
+            return dict(error='密码不能为空'), 400
         email = form.get('email')
         pass_md5 = encrypt_helper(password)
         try:
@@ -39,7 +47,7 @@ class UserResource(Resource):
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
                 logging.error(f"create user failed, msg: {e}")
                 column = re.findall(r"'\S*'", e.orig.args[1])[1].strip("'")
-                return dict(error=f"{column} has been used"), 400
+                return dict(error=f"该{user_column_cn[column]}已被使用"), 400
         return dict(data='register success!'), 200
 
     def patch(self):  # 不涉及username,password的修改
@@ -60,7 +68,7 @@ class UserResource(Resource):
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
                 logging.error(f"patch user failed, msg: {e}")
                 column = re.findall(r"'\S*'", e.orig.args[1])[1].strip("'")
-                return dict(error=f"{column} has been used"), 400
+                return dict(error=f"该{user_column_cn[column]}已被使用"), 400
         return dict(data='ok'), 200
 
 
@@ -70,7 +78,7 @@ def update_password():
     user_id = auth_helper()
     new_pass = form.get("password")
     if not new_pass:
-        return jsonify(error="password is required"), 400
+        return jsonify(error="密码不能为空"), 400
     new_pass = encrypt_helper(new_pass)
     User.patch(user_id=user_id, password=new_pass)
     cookie = request.cookies

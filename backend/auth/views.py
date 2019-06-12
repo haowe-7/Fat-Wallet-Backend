@@ -19,15 +19,15 @@ def login():
     pass_md5 = hashlib.md5(password.encode(encoding='UTF-8')).hexdigest()
     user = User.get(username=username)
     if not user:
-        return jsonify(error='account doen\'t exist'), 400
+        return jsonify(error='该用户不存在'), 400
     user = user[0]
     if user.password != pass_md5:
-        return jsonify(error='incorrect password'), 400
+        return jsonify(error='密码错误'), 400
     resp = make_response()
     resp.status_code = 200
     data = dict(user_id=user.id, student_id=user.student_id,
                 username=user.username, major=user.major,
-                email=user.email, phone= user.phone,
+                email=user.email, phone=user.phone,
                 avatar=user.avatar.decode() if user.avatar else None)
     resp.response = json.dumps(data)
     session_id = random_helper()
@@ -41,7 +41,7 @@ def logout():
     cookie = request.cookies
     session_id = cookie.get('fat-wallet')
     session.pop(session_id)
-    return jsonify(data='logout success'), 200
+    return jsonify(data='登出成功'), 200
 
 
 def random_helper():
