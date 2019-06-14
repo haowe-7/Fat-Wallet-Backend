@@ -31,8 +31,10 @@ class User(db.Model, MyMixin):
     avatar = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
-    def get(student_id=None, username=None, offset=None, limit=None):
+    def get(user_id=None, student_id=None, username=None, offset=None, limit=None):
         q = User.query
+        if user_id:
+            q = q.filter(User.id == user_id)
         if student_id:
             q = q.filter(User.student_id == student_id)
         if username:
@@ -81,10 +83,11 @@ class Task(db.Model, MyMixin):
     start_time = db.Column(db.DateTime)  # 任务开始时间
     due_time = db.Column(db.DateTime)  # 任务截止时间
     max_participate = db.Column(db.Integer)  # 参与人数上限
-    # image = db.Column(db.LargeBinary(2**21 - 1))  # 2M
+    image = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
-    def get(task_id=None, creator_id=None, task_type=None, min_reward=None, max_reward=None, offset=None, limit=None):
+    def get(task_id=None, creator_id=None, task_type=None, min_reward=None,
+            max_reward=None, offset=None, limit=None, status=None):
         q = Task.query
         if task_id:
             q = q.filter(Task.id == task_id)
@@ -98,11 +101,13 @@ class Task(db.Model, MyMixin):
             q = q.filter(Task.reward <= max_reward)
         if offset and limit:
             q = q.filter(Task.id >= offset, Task.id < int(offset) + int(limit))
+        if status:
+            q = q.filter(Task.status == status)
         return q.all()
 
     @staticmethod
-    def patch(task_id, task_type=None, reward=None, description=None, 
-              start_time=None, due_time=None, max_participate=None):
+    def patch(task_id, task_type=None, reward=None, description=None,
+              start_time=None, due_time=None, max_participate=None, image=None):
         if task_id:
             task = Task.query.filter(Task.id == task_id).first()
             if not task:
@@ -119,6 +124,8 @@ class Task(db.Model, MyMixin):
                 task.due_time = due_time
             if max_participate:
                 task.max_participate = max_participate
+            if image:
+                task.image = image
             db.session.commit()
 
 
@@ -168,6 +175,17 @@ class Collect(db.Model, MyMixin):
         return q.all()
 
 
+class ParticipateStatus(Enum):
+    APPLYING = 1  # 申请中
+    ONGOING = 2  # 进行中
+
+
+ParticipateStatusCN = {
+    1: "申请中",
+    2: "进行中"
+}
+
+
 class Participate(db.Model, MyMixin):
     __tablename__ = 'participates'
     __table_args__ = (db.UniqueConstraint('user_id', 'task_id', name='_participate_uc'),
@@ -178,9 +196,10 @@ class Participate(db.Model, MyMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)
+    status = db.Column(db.Integer, default=ParticipateStatus.APPLYING.value)
 
     @staticmethod
-    def get(user_id=None, task_id=None, participate_id=None):
+    def get(user_id=None, task_id=None, participate_id=None, status=None):
         q = Participate.query
         if user_id:
             q = q.filter(Participate.user_id == user_id)
@@ -188,6 +207,8 @@ class Participate(db.Model, MyMixin):
             q = q.filter(Participate.task_id == task_id)
         if participate_id:
             q = q.filter(Participate.id == participate_id)
+        if status:
+            q = q.filter(Participate.status == status)
         return q.all()
 
 

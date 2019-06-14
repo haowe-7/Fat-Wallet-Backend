@@ -26,11 +26,16 @@ app.config.update(
 )
 celery = make_celery(app)
 
-CELERY_IMPORTS = ("backend.user.views")
+CELERY_IMPORTS = ("backend.user.views",
+                  "backend.task.views")
 
 CELERYBEAT_SCHEDULE = {
-    "test": {
+    "hello_world": {
         "task": "backend.user.views.test",
         "schedule": crontab(),
+    },
+    "update_task_status": {
+        "task": "backend.task.views.update_task_status",
+        "schedule": crontab()
     }
 }

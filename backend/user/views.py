@@ -6,6 +6,7 @@ from sqlalchemy import exc
 import logging
 import re
 from backend.celery.config import celery
+from backend.task.helpers import get_cur_time
 blueprint = Blueprint('user', __name__)
 
 
@@ -91,6 +92,5 @@ def update_password():
 @celery.task()
 def test():
     user = User.get(student_id=1)[0]
-    import time
-    user.major = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    user.major = get_cur_time()
     db.session.commit()
