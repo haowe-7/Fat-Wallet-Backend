@@ -10,9 +10,8 @@ blueprint = Blueprint('comment', __name__)
 
 class CommentResource(Resource):
     def get(self):
-        form = request.get_json(True, True)
-        user_id = form.get('user_id')
-        task_id = form.get('task_id')
+        user_id = request.args.get('user_id')
+        task_id = request.args.get('task_id')
         comments = Comment.get(user_id=user_id, task_id=task_id)
         result = [{"id": comment.id,
                    "user_id": comment.user_id,

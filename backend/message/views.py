@@ -10,9 +10,8 @@ blueprint = Blueprint('message', __name__)
 
 class MessageResource(Resource):
     def get(self):
-        form = request.get_json(True, True)
-        user_id = form.get('user_id')
-        message_id = form.get('message_id')
+        user_id = request.args.get('user_id')
+        message_id = request.args.get('message_id')
         messages = Message.get(user_id=user_id, message_id=message_id)
         result = [{"id": message.id,
                    "user_id": message.user_id,

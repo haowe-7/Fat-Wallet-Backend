@@ -87,10 +87,3 @@ def update_password():
     session_id = cookie.get('fat-wallet')
     session.pop(session_id)
     return jsonify(data="ok"), 200
-
-
-@celery.task()
-def test():
-    user = User.get(student_id=1)[0]
-    user.major = get_cur_time()
-    db.session.commit()

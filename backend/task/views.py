@@ -103,7 +103,7 @@ class TaskResource(Resource):
         return dict(data='ok'), 200
 
 
-@blueprint.route('/open_task', methods=['POST'])
+@blueprint.route('/open', methods=['POST'])
 def open_task():
     form = request.get_json(True, True)
     user_id = auth_helper()
@@ -113,6 +113,7 @@ def open_task():
     task = Task.get(task_id=task_id)
     if not task:
         return jsonify(error='该任务不存在'), 400
+    task = task[0]
     if task.creator_id != user_id:
         return jsonify(error='权限不足'), 403
     if task.start_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
@@ -124,7 +125,7 @@ def open_task():
     return jsonify(data='发布任务成功'), 200
 
 
-@blueprint.route('/close_task', methods=['POST'])
+@blueprint.route('/close', methods=['POST'])
 def close_task():
     form = request.get_json(True, True)
     user_id = auth_helper()
@@ -134,21 +135,24 @@ def close_task():
     task = Task.get(task_id=task_id)
     if not task:
         return jsonify(error='该任务不存在'), 400
+    task = task[0]
     if task.creator_id != user_id:
         return jsonify(error='权限不足'), 403
     if not task.status:
         return jsonify(error='该任务尚未启用'), 400
-    if task.status and get_cur_time() < task.start_time.strftime("%Y-%m-%d %H:%M"):
+    if get_cur_time() < task.start_time.strftime("%Y-%m-%d %H:%M"):
         task.status = False
-        participates = Participate.get(task_id=task_id)
-        for p in participates:
-            # if p.status == ParticipateStatus.APPLYING.value:
-            #     # TODO 发消息给申请中的乙方，该任务已关闭
-            # else:
-            #     # TODO 发消息给审批通过的乙方，该任务已关闭
+        # 关闭任务将清空申请中和申请通过的乙方
+        for p in Participate.get(task_id=task_id):
+            # TODO 发消息给乙方，该任务已关闭
             db.session.delete(p)
+        db.session.commit()
         return jsonify(data='关闭任务成功'), 200
-    return jsonify(error='该任务已启用且过了开始时间，无法取消'), 400
+    if not Participate.get(task_id=task_id, status=ParticipateStatus.ONGOING.value):
+        task.status = False
+        db.session.commit()
+        return jsonify(data='关闭任务成功'), 200
+    return jsonify(error='该任务已开始且参与人数不为0，无法取消'), 400
 
 
 @celery.task()

@@ -10,9 +10,8 @@ blueprint = Blueprint('collect', __name__)
 
 class CollectResource(Resource):
     def get(self):
-        form = request.get_json(True, True)
-        user_id = form.get('user_id')
-        task_id = form.get('task_id')
+        user_id = request.args.get('user_id')
+        task_id = request.args.get('task_id')
         collects = Collect.get(user_id=user_id, task_id=task_id)
         result = [{"id": collect.id,
                    "user_id": collect.user_id,
