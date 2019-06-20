@@ -1,38 +1,36 @@
 from flask import Blueprint, request, jsonify
 from flask_restful import Resource
-from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus
+from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus, Message
 from backend.auth.helpers import auth_helper
 from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
+from backend import ADMIN_ID
 blueprint = Blueprint('task', __name__)
 
 
 class TaskResource(Resource):
     def get(self):
         creator_id = request.args.get("creator_id")
+        title = request.args.get('title')
         task_type = request.args.get("task_type")
         min_reward = request.args.get("min_reward")
         max_reward = request.args.get("max_reward")
         offset = request.args.get("offset")
         limit = request.args.get("limit")
-        tasks = Task.get(creator_id=creator_id, task_type=task_type,
+        tasks = Task.get(creator_id=creator_id, title=title, task_type=task_type,
                          min_reward=min_reward, max_reward=max_reward,
                          offset=offset, limit=limit)
-        result = [{"task_id": task.id, "task_type": task.task_type,
+        result = [{"task_id": task.id, "title": task.title, "task_type": task.task_type,
                    "reward": task.reward, "description": task.description,
-                   "status": task.status, "due_time": task.due_time.strftime("%Y-%m-%d %H:%M"),
-                   "start_time": task.start_time.strftime("%Y-%m-%d %H:%M"),
+                   "due_time": task.due_time.strftime("%Y-%m-%d %H:%M"),
                    "max_participate": task.max_participate, "creator_id": task.creator_id,
                    "image": task.image.decode() if task.image else None} for task in tasks]
 
         for value in result:
             creator = User.get(value["creator_id"])[0]
             value["creator_name"] = creator.username
-            status = None
-            if value["start_time"] < get_cur_time():
-                status = ParticipateStatus.ONGOING.value  # 如果任务已开始，只显示审批通过的乙方
             participators = [{"user_id": p.user_id, "status": ParticipateStatusCN[p.status]}
-                             for p in Participate.get(task_id=value["task_id"], status=status)]
+                             for p in Participate.get(task_id=value["task_id"])]
             for p in participators:
                 user = User.get(user_id=p["user_id"])[0]
                 p["username"] = user.username
@@ -42,6 +40,9 @@ class TaskResource(Resource):
     def post(self):
         creator_id = auth_helper()
         form = request.get_json(True, True)
+        title = form.get('title')
+        if not title:
+            return dict(error='任务标题不能为空'), 400
         task_type = form.get('task_type')
         if not task_type:
             return dict(error='任务类型不能为空'), 400
@@ -51,24 +52,17 @@ class TaskResource(Resource):
         description = form.get('description')
         if not description:
             return dict(error='任务描述不能为空'), 400
-        start_time = form.get('start_time')
-        if not start_time:
-            return dict(error='任务开始时间不能为空'), 400
-        if start_time < get_cur_time():
-            return dict(error='任务开始时间已过'), 400
         due_time = form.get('due_time')
         if not due_time:
             return dict(error='任务截止时间不能为空'), 400
         if due_time < get_cur_time():
             return dict(error='任务结束时间已过'), 400
-        if start_time > due_time:
-            return dict(error='任务开始时间晚于结束时间'), 400
         max_participate = form.get('max_participate')
         if not max_participate:
             return dict(error='任务人数上限不能为空'), 400
         image = form.get('image')
         task = Task(creator_id=creator_id, task_type=task_type, reward=reward,
-                    description=description, start_time=start_time, due_time=due_time,
+                    description=description, due_time=due_time,
                     max_participate=max_participate, image=image)
         db.session.add(task)
         db.session.commit()
@@ -88,8 +82,7 @@ class TaskResource(Resource):
         task = task[0]
         if task.creator_id != user_id:
             return dict(error="您没有权限修改该任务"), 403
-        if task.status:  # 任务start time前可以关闭，启用之前可以修改，关闭
-            return dict(error="不能修改已启用的任务"), 400
+        title = form.get('title')
         task_type = form.get('task_type')
         reward = form.get('reward')
         description = form.get('description')
@@ -97,9 +90,9 @@ class TaskResource(Resource):
         due_time = form.get('due_time')
         max_participate = form.get('max_participate')
         image = form.get('image')
-        Task.patch(task_id=task_id, task_type=task_type, reward=reward, description=description,
-                   start_time=start_time, due_time=due_time, max_participate=max_participate,
-                   image=image)
+        Task.patch(task_id=task_id, title=title, task_type=task_type, reward=reward,
+                   description=description, start_time=start_time, due_time=due_time,
+                   max_participate=max_participate, image=image)
         return dict(data='ok'), 200
 
 
@@ -163,3 +156,76 @@ def update_task_status():
             task.status = False
             db.session.commit()
             # TODO 发消息给甲方和乙方
+
+
+@blueprint.route('/review', methods=['POST'])
+def review_task():  # 甲方审核乙方的任务完成结果
+    creator_id = auth_helper()
+    form = request.get_json(True, True)
+    participator_id = form.get('participator_id')
+    view = form.get('view')
+    task_id = form.get('task_id')
+    if not participator_id:
+        return jsonify(error='请指定任务参与者'), 400
+    if not task_id:
+        return jsonify(error='请指定任务'), 400
+    task = Task.get(task_id=task_id)
+    if not task:
+        return jsonify(error='任务不存在'), 400
+    task = task[0]
+    if task.creator_id != creator_id:
+        return jsonify(error='没有操作权限'), 403
+    participate = Participate.get(user_id=participator_id, task_id=task_id)
+    if not participate:
+        return jsonify(error='用户未参与此任务'), 400
+    participate = participate[0]
+    if participate.status != ParticipateStatus.FINISH.value:
+        return jsonify(error='用户未完成此任务'), 400
+    if not view or (view != 'yes' and view != 'no'):
+        return jsonify(error='请指定正确的审核结果'), 400
+    if view == 'yes':   # 甲方满意，审核通过
+        # 发消息告知乙方
+        message = Message(user_id=participator_id,
+                          content=f'您参与的任务{task.title}完成情况通过审核，赏金和押金将送至您的账户')
+        db.session.add(message)
+        db.session.commit()
+        # TODO 支付乙方reward
+        # TODO 退还乙方押金
+    else:   # 甲方不满意，审核不通过
+        # 发消息告知乙方
+        message = Message(user_id=participator_id,
+                          content=f'您参与的任务{task.title}完成情况未通过审核，暂时无法获得赏金和押金')
+        db.session.add(message)
+        db.session.commit()
+    return jsonify(data='审核完成'), 200
+
+
+@blueprint.route('/appeal', methods=['POST'])
+def appeal_task():  # 乙方(是否)申诉甲方的审核结果
+    user_id = auth_helper()
+    form = request.get_json(True, True)
+    task_id = form.get('task_id')
+    view = form.get('view')
+    if not task_id:
+        return jsonify(error='请指定任务'), 400
+    task = Task.get(task_id=task_id)
+    if not task:
+        return jsonify(error='任务不存在'), 400
+    task = task[0]
+    if not view or (view != 'yes' and view != 'no'):
+        return jsonify(error='请指定正确的申诉请求'), 400
+    participate = Participate.get(user_id=user_id, task_id=task_id)
+    if not participate:
+        return jsonify(error='未参与该任务'), 400
+    participate = participate[0]
+    if participate.status != ParticipateStatus.FINISH.value:
+        return jsonify(error='未完成该任务'), 400
+    if view == 'yes':   # 确认申诉
+        # 发消息给admin
+        message = Message(user_id=ADMIN_ID, content=f'关于任务{task.title}有新的申诉信息')
+        db.session.add(message)
+        db.session.commit()
+    else:   # 不申诉
+        # TODO 不退还乙方押金
+        pass
+    return jsonify(data='申诉完成'), 200
