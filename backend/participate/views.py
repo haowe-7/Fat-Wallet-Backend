@@ -134,7 +134,7 @@ def finish_participate():   # 乙方确认完成任务
     if not task:
         return jsonify(error='任务不存在'), 400
     participate = Participate.get(user_id=user_id, task_id=task_id)
-    if not participate:
+    if not participate or participate.status == ParticipateStatus.APPLYING.value:
         return jsonify(error='未参与该任务'), 400
     participate = participate[0]
     if participate.status == ParticipateStatus.FINISH.value:

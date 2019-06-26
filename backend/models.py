@@ -46,7 +46,7 @@ class User(db.Model, MyMixin):
         return q.all()
 
     @staticmethod
-    def patch(user_id, student_id=None, password=None, email=None, 
+    def patch(user_id, student_id=None, password=None, email=None,
               major=None, phone=None, nickname=None, profile=None, avatar=None):
         if user_id:
             user = User.query.filter(User.id == user_id).first()
@@ -146,6 +146,7 @@ class Comment(db.Model, MyMixin):
     user_id = db.Column(db.Integer)
     task_id = db.Column(db.Integer)
     content = db.Column(db.String(100))
+    likes = db.Column(db.Integer, default=0)
 
     @staticmethod
     def get(user_id=None, task_id=None, comment_id=None):

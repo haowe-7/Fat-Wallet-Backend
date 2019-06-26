@@ -1,4 +1,4 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from flask_restful import Resource
 from backend.models import db, Comment
 from backend.auth.helpers import auth_helper
@@ -16,7 +16,8 @@ class CommentResource(Resource):
         result = [{"id": comment.id,
                    "user_id": comment.user_id,
                    "task_id": comment.task_id,
-                   "content": comment.content} for comment in comments]
+                   "content": comment.content,
+                   "likes": comment.likes} for comment in comments]
         return dict(data=result), 200
 
     def post(self):
@@ -56,7 +57,7 @@ class CommentResource(Resource):
         db.session.commit()
         return dict(data="删除评论成功"), 200
 
-    def patch(self):  # 只允许修改comment内容
+    def patch(self):  # 修改comment内容
         form = request.get_json(True, True)
         user_id = auth_helper()
         comment_id = form.get('comment_id')
@@ -72,3 +73,24 @@ class CommentResource(Resource):
         comment.content = content
         db.session.commit()
         return dict(data='修改评论成功'), 200
+
+
+@blueprint.route('/updatelikes', methods=['PATCH'])
+def update_likes():  # 修改评论点亮数(点亮/点灭)
+    form = request.get_json(True, True)
+    comment_id = form.get('comment_id')
+    like = form.get('like')
+    if not comment_id:
+        return jsonify(error='请指定评论'), 400
+    if not like or (like != 'yes' and like != 'no'):
+        return jsonify(error='请提供正确的看法(点亮 or 点灭?)'), 400
+    comment = Comment.get(comment_id=comment_id)
+    if not comment:
+        return jsonify(error='评论不存在'), 400
+    comment = comment[0]
+    if like == 'yes':
+        comment.likes += 1
+    else:
+        comment.likes -= 1
+    db.session().commit()
+    return jsonify(data='操作成功'), 200
