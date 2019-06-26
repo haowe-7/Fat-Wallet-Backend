@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_restful import Resource
-from backend.models import db, Comment
+from backend.models import db, Comment, User
 from backend.auth.helpers import auth_helper
 from sqlalchemy import exc
 import logging
@@ -18,6 +18,10 @@ class CommentResource(Resource):
                    "task_id": comment.task_id,
                    "content": comment.content,
                    "likes": comment.likes} for comment in comments]
+        for value in result:
+            user_id = value['user_id']
+            user = User.get(user_id=user_id)
+            value['username'] = user.username
         return dict(data=result), 200
 
     def post(self):
