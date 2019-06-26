@@ -3,7 +3,7 @@ from flask_restful import Resource
 from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus
 from backend.models import Message, Collect, Comment
 from backend.auth.helpers import auth_helper
-from backend.celery.config import celery
+# from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
 from backend import ADMIN_ID
 blueprint = Blueprint('task', __name__)
@@ -88,6 +88,17 @@ class TaskResource(Resource):
         task = task[0]
         if task.creator_id != user_id:
             return dict(error="您没有权限修改该任务"), 403
+        participates = Participate.get(task_id=task_id)
+        if participates:
+            # 有用户已经开始做任务/完成任务时无法修改
+            for participate in participates:
+                if participate.status != ParticipateStatus.APPLYING.value:
+                    return dict(error='任务已经有人参与，无法修改'), 400
+            # 通知所有申请该任务的用户: 该任务已修改
+            for participate in participates:
+                message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"有改动的信息')
+                db.session.add(message)
+                db.session.commit()
         title = form.get('title')
         task_type = form.get('task_type')
         reward = form.get('reward')
@@ -99,69 +110,99 @@ class TaskResource(Resource):
         Task.patch(task_id=task_id, title=title, task_type=task_type, reward=reward,
                    description=description, start_time=start_time, due_time=due_time,
                    max_participate=max_participate, image=image)
-        return dict(data='ok'), 200
-
-
-@blueprint.route('/open', methods=['POST'])
-def open_task():
-    form = request.get_json(True, True)
-    user_id = auth_helper()
-    task_id = form.get("task_id")
-    if not task_id:
-        return jsonify(error='任务ID不能为空'), 400
-    task = Task.get(task_id=task_id)
-    if not task:
-        return jsonify(error='该任务不存在'), 400
-    task = task[0]
-    if task.creator_id != user_id:
-        return jsonify(error='权限不足'), 403
-    if task.start_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
-        return jsonify(error='任务开始时间已过'), 400
-    if task.status:
-        return jsonify(error='该任务已发布'), 400
-    task.status = True
-    db.session.commit()
-    return jsonify(data='发布任务成功'), 200
-
-
-@blueprint.route('/close', methods=['POST'])
-def close_task():
-    form = request.get_json(True, True)
-    user_id = auth_helper()
-    task_id = form.get("task_id")
-    if not task_id:
-        return jsonify(error='任务ID不能为空'), 400
-    task = Task.get(task_id=task_id)
-    if not task:
-        return jsonify(error='该任务不存在'), 400
-    task = task[0]
-    if task.creator_id != user_id:
-        return jsonify(error='权限不足'), 403
-    if not task.status:
-        return jsonify(error='该任务尚未启用'), 400
-    if get_cur_time() < task.start_time.strftime("%Y-%m-%d %H:%M"):
-        task.status = False
-        # 关闭任务将清空申请中和申请通过的乙方
-        for p in Participate.get(task_id=task_id):
-            # TODO 发消息给乙方，该任务已关闭
-            db.session.delete(p)
+        return dict(data='修改任务成功'), 200
+    
+    def delete(self):
+        form = request.get_json(True, True)
+        user_id = auth_helper()
+        task_id = form.get("task_id")
+        if not task_id:
+            return jsonify(error='任务ID不能为空'), 400
+        task = Task.get(task_id=task_id)
+        if not task:
+            return jsonify(error='该任务不存在'), 400
+        task = task[0]
+        if task.creator_id != user_id:
+            return jsonify(error='权限不足'), 403
+        participates = Participate.get(task_id=task_id)
+        if participates:
+            # 有用户已经开始做任务/完成任务时无法取消
+            for participate in participates:
+                if participate.status != ParticipateStatus.APPLYING.value:
+                    return dict(error='任务已经有人参与，无法取消'), 400
+            # 通知所有申请该任务的用户: 该任务已取消
+            for participate in participates:
+                message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"已取消')
+                db.session.add(message)
+                db.session.commit()
+            # 数据库外键约束，删除任务自动删除所有participate
+            # db.session.delete(participates)
+            # db.session.commit()
+        db.session.delete(task)
         db.session.commit()
-        return jsonify(data='关闭任务成功'), 200
-    if not Participate.get(task_id=task_id, status=ParticipateStatus.ONGOING.value):
-        task.status = False
-        db.session.commit()
-        return jsonify(data='关闭任务成功'), 200
-    return jsonify(error='该任务已开始且参与人数不为0，无法取消'), 400
+        return dict(data='取消任务成功'), 200
 
 
-@celery.task()
-def update_task_status():
-    tasks = Task.get(status=True)
-    for task in tasks:
-        if task.due_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
-            task.status = False
-            db.session.commit()
-            # TODO 发消息给甲方和乙方
+# @blueprint.route('/open', methods=['POST'])
+# def open_task():
+#     form = request.get_json(True, True)
+#     user_id = auth_helper()
+#     task_id = form.get("task_id")
+#     if not task_id:
+#         return jsonify(error='任务ID不能为空'), 400
+#     task = Task.get(task_id=task_id)
+#     if not task:
+#         return jsonify(error='该任务不存在'), 400
+#     task = task[0]
+#     if task.creator_id != user_id:
+#         return jsonify(error='权限不足'), 403
+#     if task.start_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
+#         return jsonify(error='任务开始时间已过'), 400
+#     if task.status:
+#         return jsonify(error='该任务已发布'), 400
+#     task.status = True
+#     db.session.commit()
+#     return jsonify(data='发布任务成功'), 200
+
+
+# @blueprint.route('/close', methods=['POST'])
+# def close_task():
+#     form = request.get_json(True, True)
+#     user_id = auth_helper()
+#     task_id = form.get("task_id")
+#     if not task_id:
+#         return jsonify(error='任务ID不能为空'), 400
+#     task = Task.get(task_id=task_id)
+#     if not task:
+#         return jsonify(error='该任务不存在'), 400
+#     task = task[0]
+#     if task.creator_id != user_id:
+#         return jsonify(error='权限不足'), 403
+#     if not task.status:
+#         return jsonify(error='该任务尚未启用'), 400
+#     if get_cur_time() < task.start_time.strftime("%Y-%m-%d %H:%M"):
+#         task.status = False
+#         # 关闭任务将清空申请中和申请通过的乙方
+#         for p in Participate.get(task_id=task_id):
+#             # TODO 发消息给乙方，该任务已关闭
+#             db.session.delete(p)
+#         db.session.commit()
+#         return jsonify(data='关闭任务成功'), 200
+#     if not Participate.get(task_id=task_id, status=ParticipateStatus.ONGOING.value):
+#         task.status = False
+#         db.session.commit()
+#         return jsonify(data='关闭任务成功'), 200
+#     return jsonify(error='该任务已开始且参与人数不为0，无法取消'), 400
+
+
+# @celery.task()
+# def update_task_status():
+#     tasks = Task.get(status=True)
+#     for task in tasks:
+#         if task.due_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
+#             task.status = False
+#             db.session.commit()
+#             # TODO 发消息给甲方和乙方
 
 
 @blueprint.route('/review', methods=['POST'])
