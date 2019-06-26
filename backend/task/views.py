@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_restful import Resource
-from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus, Message
+from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus
+from backend.models import Message, Collect, Comment
 from backend.auth.helpers import auth_helper
 from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
@@ -35,6 +36,11 @@ class TaskResource(Resource):
                 user = User.get(user_id=p["user_id"])[0]
                 p["username"] = user.username
             value["participators"] = participators
+            user_id = auth_helper()
+            collect = Collect.get(user_id=user_id, task_id=value['task_id'])
+            value['is_collect'] = True if collect else False    # 是否收藏该任务
+            comments = Comment.get(task_id=value['task_id'])
+            value['num_comments'] = len(comments) if comments else 0    # 任务的评论数
         return dict(data=result, count=len(result)), 200
 
     def post(self):

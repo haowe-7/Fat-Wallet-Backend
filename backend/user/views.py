@@ -5,8 +5,8 @@ from backend.auth.helpers import encrypt_helper, auth_helper
 from sqlalchemy import exc
 import logging
 import re
-from backend.celery.config import celery
-from backend.task.helpers import get_cur_time
+# from backend.celery.config import celery
+# from backend.task.helpers import get_cur_time
 blueprint = Blueprint('user', __name__)
 
 
@@ -28,6 +28,7 @@ class UserResource(Resource):
         result = [{"user_id": user.id, "student_id": user.student_id,
                    "username": user.username, "major": user.major,
                    "email": user.email, "phone": user.phone,
+                   "nickname": user.nickname, "profile": user.profile,
                    "avatar": user.avatar.decode() if user.avatar else None} for user in users]
         return dict(data=result, count=len(result)), 200
 
@@ -61,10 +62,14 @@ class UserResource(Resource):
         email = form.get("email")
         major = form.get("major")
         phone = form.get("phone")
+        nickname = form.get('nickname')
+        profile = form.get('profile')
         avatar = form.get("avatar")
+
         try:
             User.patch(user_id=user_id, student_id=student_id,
                        email=email, major=major, phone=phone,
+                       nickname=nickname, profile=profile,
                        avatar=avatar.encode('utf-8') if avatar else None)
         except exc.IntegrityError as e:
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):

@@ -28,6 +28,8 @@ class User(db.Model, MyMixin):
     major = db.Column(db.String(20))
     email = db.Column(db.String(30), unique=True)
     phone = db.Column(db.String(20), unique=True)
+    nickname = db.Column(db.String(20))
+    profile = db.Column(db.String(100))
     avatar = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
@@ -44,7 +46,8 @@ class User(db.Model, MyMixin):
         return q.all()
 
     @staticmethod
-    def patch(user_id, student_id=None, password=None, email=None, major=None, phone=None, avatar=None):
+    def patch(user_id, student_id=None, password=None, email=None, 
+              major=None, phone=None, nickname=None, profile=None, avatar=None):
         if user_id:
             user = User.query.filter(User.id == user_id).first()
             if not user:
@@ -59,6 +62,10 @@ class User(db.Model, MyMixin):
                 user.major = major
             if phone:
                 user.phone = phone
+            if nickname:
+                user.nickname = nickname
+            if profile:
+                user.profile = profile
             if avatar:
                 user.avatar = avatar
             db.session.commit()
