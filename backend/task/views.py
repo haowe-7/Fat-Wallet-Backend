@@ -6,7 +6,7 @@ from backend.auth.helpers import auth_helper
 # from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
 from backend import ADMIN_ID, PLEDGE
-from utils import change_balance
+from backend.utils import change_balance
 import json
 blueprint = Blueprint('task', __name__)
 
