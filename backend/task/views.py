@@ -6,6 +6,7 @@ from backend.auth.helpers import auth_helper
 # from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
 from backend import ADMIN_ID
+import json
 blueprint = Blueprint('task', __name__)
 
 
@@ -66,10 +67,15 @@ class TaskResource(Resource):
         max_participate = form.get('max_participate')
         if not max_participate:
             return dict(error='任务人数上限不能为空'), 400
+        extra = form.get('extra')
+        try:
+            extra = json.dumps(extra)
+        except Exception:
+            return dict(error='请指定正确的任务内容'), 400
         image = form.get('image')
         task = Task(creator_id=creator_id, task_type=task_type, reward=reward,
                     description=description, due_time=due_time,
-                    max_participate=max_participate, image=image)
+                    max_participate=max_participate, extra=extra, image=image)
         db.session.add(task)
         db.session.commit()
         return dict(data="ok"), 200
@@ -106,10 +112,15 @@ class TaskResource(Resource):
         start_time = form.get('start_time')
         due_time = form.get('due_time')
         max_participate = form.get('max_participate')
+        extra = form.get('extra')
+        try:
+            extra = json.dumps(extra)
+        except Exception:
+            return dict(error='请指定正确的任务内容'), 400
         image = form.get('image')
         Task.patch(task_id=task_id, title=title, task_type=task_type, reward=reward,
                    description=description, start_time=start_time, due_time=due_time,
-                   max_participate=max_participate, image=image)
+                   max_participate=max_participate, extra=extra, image=image)
         return dict(data='修改任务成功'), 200
     
     def delete(self):
@@ -220,7 +231,7 @@ def get_extra():    # 获取任务的具体内容，仅甲方和通过申请的�
     if (not participate or (participate and participate[0].status == ParticipateStatus.APPLYING.value))\
             and task.creator_id != user_id:
         return jsonify(error='没有权限查看'), 403
-    return jsonify(data=task.extra), 200
+    return jsonify(data=json.loads(task.extra)), 200
 
 
 @blueprint.route('/review', methods=['POST'])

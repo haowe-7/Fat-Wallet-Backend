@@ -93,7 +93,7 @@ class Task(db.Model, MyMixin):
     # status = db.Column(db.Boolean, default=False)  # 任务状态: 是否开放
     due_time = db.Column(db.DateTime)  # 任务截止时间
     max_participate = db.Column(db.Integer)  # 参与人数上限
-    extra = db.Column(db.TEXT, nullable=False)  # 任务内容，json格式
+    extra = db.Column(db.TEXT)  # 任务内容，json格式
     image = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
@@ -142,6 +142,32 @@ class Task(db.Model, MyMixin):
             db.session.commit()
 
 
+class Submission(db.Model, MyMixin):    # 问卷调查的填写结果
+    __tablename__ = 'submissons'
+    __table_args__ = (db.ForeignKeyConstraint(['user_id'], ['users.id'],
+                      name='submission_user_fc', ondelete="CASCADE"),
+                      db.ForeignKeyConstraint(['task_id'], ['tasks.id'],
+                      name='submission_task_fc', ondelete="CASCADE"),
+                      db.UniqueConstraint('user_id', 'task_id', name='_submission_uc'),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    task_id = db.Column(db.Integer)
+    answer = db.Column(db.TEXT, nullable=False)   # json格式的答案
+
+    @staticmethod
+    def get(submission_id=None, user_id=None, task_id=None):
+        q = Submission.query
+        if user_id:
+            q = q.filter(Submission.user_id == user_id)
+        if task_id:
+            q = q.filter(Submission.task_id == task_id)
+        if user_id and task_id:
+            q = q.filter(Submission.user_id == user_id, Submission.task_id == task_id)
+        if submission_id:
+            q = q.filter(Submission.id == submission_id)
+        return q.all()
+
+
 class Comment(db.Model, MyMixin):
     __tablename__ = 'comments'
     __table_args__ = (db.ForeignKeyConstraint(['user_id'], ['users.id'],
@@ -161,6 +187,8 @@ class Comment(db.Model, MyMixin):
             q = q.filter(Comment.user_id == user_id)
         if task_id:
             q = q.filter(Comment.task_id == task_id)
+        if user_id and task_id:
+            q = q.filter(Comment.user_id == user_id, Comment.task_id == task_id)
         if comment_id:
             q = q.filter(Comment.id == comment_id)
         return q.all()
@@ -184,6 +212,8 @@ class Collect(db.Model, MyMixin):
             q = q.filter(Collect.user_id == user_id)
         if task_id:
             q = q.filter(Collect.task_id == task_id)
+        if user_id and task_id:
+            q = q.filter(Collect.user_id == user_id, Collect.task_id == task_id)
         if collect_id:
             q = q.filter(Collect.id == collect_id)
         return q.all()
@@ -221,6 +251,8 @@ class Participate(db.Model, MyMixin):
             q = q.filter(Participate.user_id == user_id)
         if task_id:
             q = q.filter(Participate.task_id == task_id)
+        if user_id and task_id:
+            q = q.filter(Participate.user_id == user_id, Participate.task_id == task_id)
         if participate_id:
             q = q.filter(Participate.id == participate_id)
         if status:

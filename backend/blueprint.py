@@ -10,6 +10,7 @@ from backend.participate.views import ParticipateResource
 from backend.participate.views import blueprint as participate_blueprint
 from backend.collect.views import CollectResource
 from backend.message.views import MessageResource
+from backend.submission.views import SubmissionResource
 
 
 def setup(app):
@@ -26,3 +27,4 @@ def setup(app):
     api.add_resource(ParticipateResource, '/participates/')
     api.add_resource(CollectResource, '/collects/')
     api.add_resource(MessageResource, '/messages/')
+    api.add_resource(SubmissionResource, '/submissions/')
