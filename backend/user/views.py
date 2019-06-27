@@ -29,6 +29,7 @@ class UserResource(Resource):
                    "username": user.username, "major": user.major,
                    "email": user.email, "phone": user.phone,
                    "nickname": user.nickname, "profile": user.profile,
+                   "balance": user.balance,
                    "avatar": user.avatar.decode() if user.avatar else None} for user in users]
         return dict(data=result, count=len(result)), 200
 
@@ -64,12 +65,13 @@ class UserResource(Resource):
         phone = form.get("phone")
         nickname = form.get('nickname')
         profile = form.get('profile')
+        balance = form.get('balance')
         avatar = form.get("avatar")
 
         try:
             User.patch(user_id=user_id, student_id=student_id,
                        email=email, major=major, phone=phone,
-                       nickname=nickname, profile=profile,
+                       nickname=nickname, profile=profile, balance=balance,
                        avatar=avatar.encode('utf-8') if avatar else None)
         except exc.IntegrityError as e:
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):

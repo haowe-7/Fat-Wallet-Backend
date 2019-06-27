@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 from flask_restful import Resource
-from backend.models import db, Message
+from backend.models import db, Message, User
 from backend.auth.helpers import auth_helper
 from sqlalchemy import exc
 import logging
@@ -16,6 +16,10 @@ class MessageResource(Resource):
         result = [{"id": message.id,
                    "user_id": message.user_id,
                    "content": message.content} for message in messages]
+        for value in result:
+            user_id = value['user_id']
+            user = User.get(user_id=user_id)
+            value['username'] = user.username
         return dict(data=result), 200
     
     def post(self):

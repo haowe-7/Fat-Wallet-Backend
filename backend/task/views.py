@@ -87,7 +87,7 @@ class TaskResource(Resource):
             return dict(error="该任务不存在"), 400
         task = task[0]
         if task.creator_id != user_id:
-            return dict(error="您没有权限修改该任务"), 403
+            return dict(error="权限不足"), 403
         participates = Participate.get(task_id=task_id)
         if participates:
             # 有用户已经开始做任务/完成任务时无法修改
@@ -203,6 +203,24 @@ class TaskResource(Resource):
 #             task.status = False
 #             db.session.commit()
 #             # TODO 发消息给甲方和乙方
+
+
+@blueprint.route('/extra', methods=['GET'])
+def get_extra():    # 获取任务的具体内容，仅甲方和通过申请的乙方可查看
+    user_id = auth_helper()
+    task_id = request.args.get("task_id")
+    if not task_id:
+        return jsonify(error='请指定任务'), 400
+    task = Task.get(task_id=task_id)
+    if not task:
+        return jsonify(error='任务不存在'), 400
+    task = task[0]
+    participate = Participate.get(user_id=user_id, task_id=task_id)
+    # 未参与、申请中、非创建者
+    if (not participate or (participate and participate[0].status == ParticipateStatus.APPLYING.value))\
+            and task.creator_id != user_id:
+        return jsonify(error='没有权限查看'), 403
+    return jsonify(data=task.extra), 200
 
 
 @blueprint.route('/review', methods=['POST'])

@@ -30,6 +30,7 @@ class User(db.Model, MyMixin):
     phone = db.Column(db.String(20), unique=True)
     nickname = db.Column(db.String(20))
     profile = db.Column(db.String(100))
+    balance = db.Column(db.Integer, default=100)
     avatar = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
@@ -46,8 +47,8 @@ class User(db.Model, MyMixin):
         return q.all()
 
     @staticmethod
-    def patch(user_id, student_id=None, password=None, email=None,
-              major=None, phone=None, nickname=None, profile=None, avatar=None):
+    def patch(user_id, student_id=None, password=None, email=None, major=None,
+              phone=None, nickname=None, profile=None, balance=None, avatar=None):
         if user_id:
             user = User.query.filter(User.id == user_id).first()
             if not user:
@@ -68,6 +69,8 @@ class User(db.Model, MyMixin):
                 user.profile = profile
             if avatar:
                 user.avatar = avatar
+            if balance:
+                user.balance = balance
             db.session.commit()
 
 
@@ -82,14 +85,15 @@ class Task(db.Model, MyMixin):
     __table_args__ = (db.ForeignKeyConstraint(['creator_id'], ['users.id'],
                       name='task_user_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
-    creator_id = db.Column(db.Integer)
-    title = db.Column(db.String(20))   # 任务标题
-    task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value)  # 任务类型
-    reward = db.Column(db.Integer, default=0)  # 任务赏金
+    creator_id = db.Column(db.Integer, nullable=False)
+    title = db.Column(db.String(20), nullable=False)   # 任务标题
+    task_type = db.Column(db.Integer, default=TaskType.QUESTIONNAIRE.value, nullable=False)  # 任务类型
+    reward = db.Column(db.Integer, default=0, nullable=False)  # 任务赏金
     description = db.Column(TEXT)    # 任务描述
     # status = db.Column(db.Boolean, default=False)  # 任务状态: 是否开放
     due_time = db.Column(db.DateTime)  # 任务截止时间
     max_participate = db.Column(db.Integer)  # 参与人数上限
+    extra = db.Column(db.TEXT, nullable=False)  # 任务内容，json格式
     image = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
@@ -114,7 +118,7 @@ class Task(db.Model, MyMixin):
 
     @staticmethod
     def patch(task_id, title=None, task_type=None, reward=None, description=None,
-              due_time=None, max_participate=None, image=None):
+              due_time=None, max_participate=None, extra=None, image=None):
         if task_id:
             task = Task.query.filter(Task.id == task_id).first()
             if not task:
@@ -131,6 +135,8 @@ class Task(db.Model, MyMixin):
                 task.due_time = due_time
             if max_participate:
                 task.max_participate = max_participate
+            if extra:
+                task.extra = extra
             if image:
                 task.image = image
             db.session.commit()
