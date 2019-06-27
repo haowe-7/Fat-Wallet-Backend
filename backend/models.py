@@ -103,7 +103,6 @@ class Task(db.Model, MyMixin):
         q = Task.query
         if task_id:
             q = q.filter(Task.id == task_id)
-            return q.all()
         if creator_id:
             q = q.filter(Task.creator_id == creator_id)
         if title:
@@ -214,8 +213,6 @@ class Collect(db.Model, MyMixin):
             q = q.filter(Collect.user_id == user_id)
         if task_id:
             q = q.filter(Collect.task_id == task_id)
-        if user_id and task_id:
-            q = q.filter(Collect.user_id == user_id, Collect.task_id == task_id)
         if collect_id:
             q = q.filter(Collect.id == collect_id)
         return q.all()

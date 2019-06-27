@@ -13,16 +13,26 @@ blueprint = Blueprint('task', __name__)
 
 class TaskResource(Resource):
     def get(self):
-        creator_id = request.args.get("creator_id")
-        title = request.args.get('title')
-        task_type = request.args.get("task_type")
-        min_reward = request.args.get("min_reward")
-        max_reward = request.args.get("max_reward")
-        offset = request.args.get("offset")
-        limit = request.args.get("limit")
-        tasks = Task.get(creator_id=creator_id, title=title, task_type=task_type,
-                         min_reward=min_reward, max_reward=max_reward,
-                         offset=offset, limit=limit)
+        find_collect = request.args.get('find_collect')
+        user_id = request.args.get('user_id')
+        tasks = []
+        if find_collect and find_collect is True and user_id:
+            collects = Collect.get(user_id=user_id)
+            for collect in collects:
+                task = Task.get(task_id=collect.task_id)
+                if task:
+                    tasks.append(task[0])
+        else:
+            creator_id = request.args.get("creator_id")
+            title = request.args.get('title')
+            task_type = request.args.get("task_type")
+            min_reward = request.args.get("min_reward")
+            max_reward = request.args.get("max_reward")
+            offset = request.args.get("offset")
+            limit = request.args.get("limit")
+            tasks = Task.get(creator_id=creator_id, title=title, task_type=task_type,
+                             min_reward=min_reward, max_reward=max_reward,
+                             offset=offset, limit=limit)
         result = [{"task_id": task.id, "title": task.title, "task_type": task.task_type,
                    "reward": task.reward, "description": task.description,
                    "due_time": task.due_time.strftime("%Y-%m-%d %H:%M"),
