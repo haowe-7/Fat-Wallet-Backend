@@ -118,14 +118,14 @@ def review_participate():  # 甲方审批乙方的申请
         # 发消息给乙方　申请已通过
         message = Message(user_id=participator_id, content=f'您关于任务{task.title}的申请已通过')
         db.session.add(message)
-        db.commit()
+        db.session.commit()
     else:   # 不同意乙方参与任务
         db.session.delete(participate)
         db.session.commit()
         # 发消息给乙方 申请未通过
         message = Message(user_id=participator_id, content=f'您关于任务{task.title}的申请未通过')
         db.session.add(message)
-        db.commit()
+        db.session.commit()
         # 退还乙方押金
         change_balance(participator_id, PLEDGE)
 

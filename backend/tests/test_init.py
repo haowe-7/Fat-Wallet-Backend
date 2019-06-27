@@ -1,6 +1,6 @@
 import unittest
 from backend.auth.helpers import encrypt_helper
-from backend.models import db, User, Task, Comment, Collect, Participate, Message, ParticipateStatus, Submission
+from backend.models import db, User, Task, Comment, Collect, Participate, ParticipateStatus, Submission
 import logging
 import json
 
@@ -52,7 +52,7 @@ class TestInit(unittest.TestCase):
 
         try:
             for i in range(0, 10):
-                participate = Participate(user_id=i + 1, task_id=i + 1, status=1)
+                participate = Participate(user_id=i + 1, task_id=i % 2 + 1, status=1)
                 db.session.add(participate)
                 db.session.flush()
         except Exception as e:

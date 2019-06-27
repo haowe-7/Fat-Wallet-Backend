@@ -106,17 +106,27 @@ class TaskResource(Resource):
             for participate in participates:
                 if participate.status != ParticipateStatus.APPLYING.value:
                     return dict(error='任务已经有人参与，无法修改'), 400
-            # 通知所有申请该任务的用户: 该任务已修改
+            # 撤销所有的申请并通知申请者
+            ids = []
             for participate in participates:
-                message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"有改动的信息')
+                ids.append(participate.id)
+                message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"有改动的信息，申请取消')
                 db.session.add(message)
                 db.session.commit()
+            stmt = Participate.__table__.delete().where(Participate.id.in_(ids))
+            db.session.execute(stmt)
+            db.session.commit()
+            
         title = form.get('title')
         task_type = form.get('task_type')
         reward = form.get('reward')
-        description = form.get('description')
-        due_time = form.get('due_time')
         max_participate = form.get('max_participate')
+        if title or task_type or reward or max_participate:
+            return dict(error='只允许修改任务截止时间、简介、内容、图片'), 400
+        due_time = form.get('due_time')
+        if due_time and due_time < get_cur_time():
+            return dict(error='截止时间已过'), 400
+        description = form.get('description')
         extra = form.get('extra')
         if extra:
             try:
@@ -150,7 +160,8 @@ class TaskResource(Resource):
             # 通知所有申请该任务的用户: 该任务已取消
             for participate in participates:
                 message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"已取消')
-                # TODO 把押金还给申请者
+                # 把押金还给申请者
+                change_balance(participate.user_id, PLEDGE)
                 db.session.add(message)
                 db.session.commit()
             # 数据库外键约束，删除任务自动删除所有participate
