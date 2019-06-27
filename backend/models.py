@@ -30,7 +30,7 @@ class User(db.Model, MyMixin):
     phone = db.Column(db.String(20), unique=True)
     nickname = db.Column(db.String(20))
     profile = db.Column(db.String(100))
-    balance = db.Column(db.Integer, default=100)
+    balance = db.Column(db.Integer, default=1000)
     avatar = db.Column(db.LargeBinary(2**21 - 1))  # 2M
 
     @staticmethod
@@ -38,6 +38,7 @@ class User(db.Model, MyMixin):
         q = User.query
         if user_id:
             q = q.filter(User.id == user_id)
+            return q.all()
         if student_id:
             q = q.filter(User.student_id == student_id)
         if username:
@@ -102,6 +103,7 @@ class Task(db.Model, MyMixin):
         q = Task.query
         if task_id:
             q = q.filter(Task.id == task_id)
+            return q.all()
         if creator_id:
             q = q.filter(Task.creator_id == creator_id)
         if title:

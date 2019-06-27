@@ -28,6 +28,7 @@ def login():
     data = dict(user_id=user.id, student_id=user.student_id,
                 username=user.username, major=user.major,
                 email=user.email, phone=user.phone,
+                balance=user.balance,
                 avatar=user.avatar.decode() if user.avatar else None)
     resp.response = json.dumps(data)
     session_id = random_helper()

@@ -5,7 +5,8 @@ from backend.models import Message, Collect, Comment
 from backend.auth.helpers import auth_helper
 # from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
-from backend import ADMIN_ID
+from backend import ADMIN_ID, PLEDGE
+from utils import change_balance
 import json
 blueprint = Blueprint('task', __name__)
 
@@ -73,6 +74,11 @@ class TaskResource(Resource):
         except Exception:
             return dict(error='请指定正确的任务内容'), 400
         image = form.get('image')
+        # 支付押金
+        try:
+            change_balance(creator_id, -1 * reward * max_participate)
+        except RuntimeError as e:
+            return dict(error=f'{e}'), 400
         task = Task(creator_id=creator_id, task_type=task_type, reward=reward,
                     description=description, due_time=due_time,
                     max_participate=max_participate, extra=extra, image=image)
@@ -109,17 +115,17 @@ class TaskResource(Resource):
         task_type = form.get('task_type')
         reward = form.get('reward')
         description = form.get('description')
-        start_time = form.get('start_time')
         due_time = form.get('due_time')
         max_participate = form.get('max_participate')
         extra = form.get('extra')
-        try:
-            extra = json.dumps(extra)
-        except Exception:
-            return dict(error='请指定正确的任务内容'), 400
+        if extra:
+            try:
+                extra = json.dumps(extra)
+            except Exception:
+                return dict(error='请指定正确的任务内容'), 400
         image = form.get('image')
         Task.patch(task_id=task_id, title=title, task_type=task_type, reward=reward,
-                   description=description, start_time=start_time, due_time=due_time,
+                   description=description, due_time=due_time,
                    max_participate=max_participate, extra=extra, image=image)
         return dict(data='修改任务成功'), 200
     
@@ -144,11 +150,15 @@ class TaskResource(Resource):
             # 通知所有申请该任务的用户: 该任务已取消
             for participate in participates:
                 message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"已取消')
+                # TODO 把押金还给申请者
                 db.session.add(message)
                 db.session.commit()
             # 数据库外键约束，删除任务自动删除所有participate
             # db.session.delete(participates)
             # db.session.commit()
+        # 把押金还给发起者
+        change_balance(user_id, task.reward * task.max_participate)
+        # 数据库中删除任务
         db.session.delete(task)
         db.session.commit()
         return dict(data='取消任务成功'), 200
@@ -265,8 +275,10 @@ def review_task():  # 甲方审核乙方的任务完成结果
                           content=f'您参与的任务{task.title}完成情况通过审核，赏金和押金将送至您的账户')
         db.session.add(message)
         db.session.commit()
-        # TODO 支付乙方reward
-        # TODO 退还乙方押金
+        # 支付乙方reward
+        change_balance(participator_id, task.reward)
+        # 退还乙方押金
+        change_balance(participator_id, PLEDGE)
     else:   # 甲方不满意，审核不通过
         # 发消息告知乙方
         message = Message(user_id=participator_id,
@@ -302,6 +314,6 @@ def appeal_task():  # 乙方(是否)申诉甲方的审核结果
         db.session.add(message)
         db.session.commit()
     else:   # 不申诉
-        # TODO 不退还乙方押金
+        # 不退还乙方押金
         pass
     return jsonify(data='申诉完成'), 200

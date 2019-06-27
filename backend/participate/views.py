@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from flask_restful import Resource
 from backend.models import db, Participate, ParticipateStatusCN, ParticipateStatus, Task, Message
 from backend.auth.helpers import auth_helper
+from backend.utils import change_balance
+from backend import PLEDGE
 from sqlalchemy import exc
 import logging
 import re
@@ -28,10 +30,15 @@ class ParticipateResource(Resource):
             return dict(error='请指定任务'), 400
         task = Task.get(task_id=task_id)
         if not task:
-            return dict(error='该任务不存在'), 400  # FIXME 自己的任务自己能否参与
+            return dict(error='该任务不存在'), 400
         task = task[0]
         if task.creator_id == user_id:
             return dict(error='发起者无需申请参与该任务'), 400
+        # 支付押金
+        try:
+            change_balance(user_id, -1 * PLEDGE)
+        except RuntimeError as e:
+            return dict(error=f'{e}'), 400
         try:
             participate = Participate(user_id=user_id, task_id=task_id, status=ParticipateStatus.APPLYING.value)
             db.session.add(participate)
@@ -75,7 +82,7 @@ class ParticipateResource(Resource):
         message = Message(user_id=task.creator_id, content=f'有人退出了任务{task.title}')
         db.session.add(message)
         db.session.commit()
-        # TODO 不退还乙方押金
+        # 不退还乙方押金
         return dict(data="ok"), 200
 
 
@@ -119,7 +126,9 @@ def review_participate():  # 甲方审批乙方的申请
         message = Message(user_id=participator_id, content=f'您关于任务{task.title}的申请未通过')
         db.session.add(message)
         db.commit()
-        # TODO 退还乙方押金
+        # 退还乙方押金
+        change_balance(participator_id, PLEDGE)
+
     return jsonify(data='审批完成'), 200
 
 
