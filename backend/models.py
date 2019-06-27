@@ -225,12 +225,14 @@ class ParticipateStatus(Enum):
     APPLYING = 1  # 申请中
     ONGOING = 2  # 进行中
     FINISH = 3  # 已完成
+    FAILED = 4  # 未完成
 
 
 ParticipateStatusCN = {
     1: "申请中",
     2: "进行中",
-    3: "已完成"
+    3: "已完成",
+    4: "未完成"     # 任务截止时间已过时
 }
 
 

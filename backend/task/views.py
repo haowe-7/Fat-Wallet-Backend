@@ -3,7 +3,7 @@ from flask_restful import Resource
 from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus
 from backend.models import Message, Collect, Comment
 from backend.auth.helpers import auth_helper
-# from backend.celery.config import celery
+from backend.celery.config import celery
 from backend.task.helpers import get_cur_time
 from backend import ADMIN_ID, PLEDGE
 from backend.utils import change_balance
@@ -113,6 +113,8 @@ class TaskResource(Resource):
                 message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"有改动的信息，申请取消')
                 db.session.add(message)
                 db.session.commit()
+                # 把押金还给申请者
+                change_balance(participate.user_id, PLEDGE)
             stmt = Participate.__table__.delete().where(Participate.id.in_(ids))
             db.session.execute(stmt)
             db.session.commit()
@@ -227,14 +229,41 @@ class TaskResource(Resource):
 #     return jsonify(error='该任务已开始且参与人数不为0，无法取消'), 400
 
 
-# @celery.task()
-# def update_task_status():
-#     tasks = Task.get(status=True)
-#     for task in tasks:
-#         if task.due_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
-#             task.status = False
-#             db.session.commit()
-#             # TODO 发消息给甲方和乙方
+@celery.task()
+def update_task_status():   # 检查任务是否到期
+    tasks = Task.get()
+    for task in tasks:
+        # 任务截止时间已过
+        if task.due_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
+            participates = Participate.get(task_id=task.id)
+            ids = []
+            count = 0
+            for participate in participates:
+                if participate.status == ParticipateStatus.APPLYING.value:
+                    # 取消申请，发消息告知乙方并退还押金
+                    ids.append(participate.id)
+                    message = Message(user_id=participate.user_id, content=f'您申请的任务{task.title}截止时间已过，申请已取消')
+                    db.session.add(message)
+                    db.session.commit()
+                    change_balance(participate.user_id, PLEDGE)
+                elif participate.status == ParticipateStatus.ONGOING.value:
+                    # 乙方任务失败，改变参与状态，不退还押金并发送消息
+                    participate.status = ParticipateStatus.FAILED.value
+                    db.session.commit()
+                    message = Message(user_id=participate.user_id, content=f'您正在进行的任务{task.title}截止时间已过，您未完成任务，无法退还押金')
+                    db.session.add(message)
+                    db.session.commit()
+                elif participate.status == ParticipateStatus.FINISH.value:
+                    count += 1
+            # 取消所有申请
+            stmt = Participate.__table__.delete().where(Participate.id.in_(ids))
+            db.session.execute(stmt)
+            db.session.commit()
+            # 退还甲方剩余押金并发送消息
+            change_balance(task.creator_id, (task.max_participate - count) * task.reward)
+            message = Message(user_id=task.creator_id, content=f'您发起的任务{task.title}截止时间已过，剩余押金已退还')
+            db.session.add(message)
+            db.session.commit()
 
 
 @blueprint.route('/extra', methods=['GET'])
