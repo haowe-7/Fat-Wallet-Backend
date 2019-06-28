@@ -20,7 +20,7 @@ class CommentResource(Resource):
                    "likes": comment.likes} for comment in comments]
         for value in result:
             user_id = value['user_id']
-            user = User.get(user_id=user_id)
+            user = User.get(user_id=user_id)[0]
             value['username'] = user.username
         return dict(data=result), 200
 

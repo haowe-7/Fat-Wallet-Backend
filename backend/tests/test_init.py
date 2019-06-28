@@ -48,7 +48,7 @@ class TestInit(unittest.TestCase):
                 db.session.add(collect)
                 db.session.flush()
         except Exception as e:
-            logging.error(f'error when adding comments: {e}')
+            logging.error(f'error when adding collects: {e}')
 
         try:
             for i in range(0, 10):

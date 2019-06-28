@@ -75,7 +75,7 @@ class TaskResource(Resource):
             return dict(error='任务截止时间不能为空'), 400
         if due_time < get_cur_time():
             return dict(error='任务结束时间已过'), 400
-        max_participate = form.get('max_participate')
+        max_participate = form.get('max_participant')
         if not max_participate:
             return dict(error='任务人数上限不能为空'), 400
         extra = form.get('extra')
@@ -86,11 +86,11 @@ class TaskResource(Resource):
         image = form.get('image')
         # 支付押金
         try:
-            change_balance(creator_id, -1 * reward * max_participate)
+            change_balance(creator_id, -1 * int(reward) * int(max_participate))
         except RuntimeError as e:
             return dict(error=f'{e}'), 400
         task = Task(creator_id=creator_id, task_type=task_type, reward=reward,
-                    description=description, due_time=due_time,
+                    description=description, due_time=due_time, title=title,
                     max_participate=max_participate, extra=extra, image=image)
         db.session.add(task)
         db.session.commit()
@@ -132,7 +132,7 @@ class TaskResource(Resource):
         title = form.get('title')
         task_type = form.get('task_type')
         reward = form.get('reward')
-        max_participate = form.get('max_participate')
+        max_participate = form.get('max_participant')
         if title or task_type or reward or max_participate:
             return dict(error='只允许修改任务截止时间、简介、内容、图片'), 400
         due_time = form.get('due_time')
