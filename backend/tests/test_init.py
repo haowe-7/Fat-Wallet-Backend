@@ -70,7 +70,7 @@ class TestInit(unittest.TestCase):
         participates = Participate.get()
         assert len(participates) == 5, 'testing delete task failed'
         logging.info('testing delete task succeed')
-        
+
     def add_submission(self):
         logging.info('testing add submission')
         try:

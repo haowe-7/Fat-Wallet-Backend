@@ -29,7 +29,8 @@ def login():
                 username=user.username, major=user.major,
                 email=user.email, phone=user.phone,
                 balance=user.balance,
-                avatar=user.avatar.decode() if user.avatar else None)
+                avatar=user.avatar.decode() if user.avatar else None,
+                nickname=user.nickname, profile=user.profile)
     resp.response = json.dumps(data)
     session_id = random_helper()
     resp.set_cookie('fat-wallet', session_id, max_age=3600)

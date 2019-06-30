@@ -8,6 +8,7 @@ from backend.comment.views import CommentResource
 from backend.comment.views import blueprint as comment_blueprint
 from backend.participate.views import ParticipateResource
 from backend.participate.views import blueprint as participate_blueprint
+from backend.file.helpers import blueprint as file_blueprint
 from backend.collect.views import CollectResource
 from backend.message.views import MessageResource
 from backend.submission.views import SubmissionResource
@@ -20,6 +21,7 @@ def setup(app):
     app.register_blueprint(task_blueprint, url_prefix='/tasks')
     app.register_blueprint(participate_blueprint, url_prefix='/participates')
     app.register_blueprint(comment_blueprint, url_prefix='/comments/')
+    app.register_blueprint(file_blueprint, url_prefix='/file/')
 
     api.add_resource(UserResource, '/users')
     api.add_resource(TaskResource, '/tasks')

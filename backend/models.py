@@ -31,7 +31,7 @@ class User(db.Model, MyMixin):
     nickname = db.Column(db.String(20))
     profile = db.Column(db.String(100))
     balance = db.Column(db.Integer, default=1000)
-    avatar = db.Column(db.LargeBinary(2**21 - 1))  # 2M
+    avatar = db.Column(db.String(30))  # url
 
     @staticmethod
     def get(user_id=None, student_id=None, username=None, offset=None, limit=None):
@@ -46,6 +46,11 @@ class User(db.Model, MyMixin):
         if offset and limit:
             q = q.filter(User.id >= offset, User.id < int(offset) + int(limit))
         return q.all()
+
+    @staticmethod
+    def get_by_id(user_id):
+        user = User.query.filter(User.id == user_id).first()
+        return user
 
     @staticmethod
     def patch(user_id, student_id=None, password=None, email=None, major=None,
@@ -95,7 +100,12 @@ class Task(db.Model, MyMixin):
     due_time = db.Column(db.DateTime)  # 任务截止时间
     max_participate = db.Column(db.Integer)  # 参与人数上限
     extra = db.Column(db.TEXT)  # 任务内容，json格式
-    image = db.Column(db.LargeBinary(2**21 - 1))  # 2M
+    image = db.Column(db.String(30))  # url
+
+    @staticmethod
+    def get_by_id(task_id):
+        task = Task.query.filter(Task.id == task_id).first()
+        return task
 
     @staticmethod
     def get(task_id=None, creator_id=None, title=None, task_type=None,
@@ -223,13 +233,15 @@ class ParticipateStatus(Enum):
     ONGOING = 2  # 进行中
     FINISH = 3  # 已完成
     FAILED = 4  # 未完成
+    CHECK = 5  # 审批中
 
 
 ParticipateStatusCN = {
     1: "申请中",
     2: "进行中",
     3: "已完成",
-    4: "未完成"     # 任务截止时间已过时
+    4: "未完成",     # 任务截止时间已过时
+    5: "审批中"
 }
 
 
@@ -261,13 +273,23 @@ class Participate(db.Model, MyMixin):
         return q.all()
 
 
+class MessageType(Enum):
+    TEXT = 1  # 文本消息
+    APPLY = 2  # 乙方申请
+    FINISH = 3  # 乙方请求验收
+    COMPLAIN = 4  # 乙方申诉
+
+
 class Message(db.Model, MyMixin):
     __tablename__ = 'messages'
     __table_args__ = (db.ForeignKeyConstraint(['user_id'], ['users.id'],
                       name='message_user_fc', ondelete="CASCADE"),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
+    msg_type = db.Column(db.Integer, default=MessageType.TEXT.value)
     content = db.Column(db.String(100))
+    is_used = db.Column(db.Boolean, default=False)
+    send_from = db.Column(db.Integer)
 
     @staticmethod
     def get(user_id=None, message_id=None):

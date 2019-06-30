@@ -2,6 +2,7 @@ from flask import Blueprint, request, session, jsonify
 from flask_restful import Resource
 from backend.models import db, User
 from backend.auth.helpers import encrypt_helper, auth_helper
+from backend.file.helpers import upload_file
 from sqlalchemy import exc
 import logging
 import re
@@ -66,13 +67,11 @@ class UserResource(Resource):
         nickname = form.get('nickname')
         profile = form.get('profile')
         balance = form.get('balance')
-        avatar = form.get("avatar")
 
         try:
             User.patch(user_id=user_id, student_id=student_id,
                        email=email, major=major, phone=phone,
-                       nickname=nickname, profile=profile, balance=balance,
-                       avatar=avatar.encode('utf-8') if avatar else None)
+                       nickname=nickname, profile=profile, balance=balance)
         except exc.IntegrityError as e:
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
                 logging.error(f"patch user failed, msg: {e}")
@@ -94,3 +93,15 @@ def update_password():
     session_id = cookie.get('fat-wallet')
     session.pop(session_id)
     return jsonify(data="ok"), 200
+
+
+@blueprint.route('/avatar', methods=['POST'])
+def update_avatar():
+    user_id = auth_helper()
+    flag, msg = upload_file(f"avatar-{user_id}")
+    if not flag:
+        return jsonify(error=msg), 400
+    user = User.get_by_id(user_id)
+    user.avatar = msg
+    db.session.commit()
+    return jsonify(data=msg), 200

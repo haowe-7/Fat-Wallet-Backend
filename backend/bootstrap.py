@@ -7,7 +7,7 @@ import logging
 setup(app)
 # app.run(host="0.0.0.0", debug=True)
 
-valid_path = {'/login', '/users/'}
+valid_path = {'/login', '/users', '/logout'}
 
 
 @app.before_request

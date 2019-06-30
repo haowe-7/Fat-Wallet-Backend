@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_restful import Resource
-from backend.models import db, Participate, ParticipateStatusCN, ParticipateStatus, Task, Message
+from backend.models import db, Participate, ParticipateStatusCN, ParticipateStatus, Task, Message, User, MessageType
 from backend.auth.helpers import auth_helper
 from backend.utils import change_balance
 from backend import PLEDGE
@@ -20,6 +20,11 @@ class ParticipateResource(Resource):
                    "user_id": participate.user_id,
                    "task_id": participate.task_id,
                    "status": ParticipateStatusCN[participate.status]} for participate in participates]
+        for r in result:
+            user = User.get(user_id=r["user_id"])[0]
+            r["email"] = user.email
+            r["phone"] = user.phone
+            r["username"] = user.username
         return dict(data=result), 200
 
     def post(self):
@@ -52,7 +57,9 @@ class ParticipateResource(Resource):
             else:
                 return dict(error=f'{e}'), 400
         # 发申请消息给甲方
-        message = Message(user_id=task.creator_id, content=f'有人申请参加任务{task.title}')
+        user = User.get_by_id(user_id)
+        message = Message(user_id=task.creator_id, content=f'用户 {user.username} 申请参加任务 {task.title}',
+                          msg_type=MessageType.APPLY.value, send_from=user_id)
         db.session.add(message)
         db.session.commit()
         return dict(data="已成功发出申请"), 200
@@ -79,7 +86,8 @@ class ParticipateResource(Resource):
         db.session.delete(participate)
         db.session.commit()
         # 发消息给甲方，乙方退出了任务
-        message = Message(user_id=task.creator_id, content=f'有人退出了任务{task.title}')
+        user = User.get_by_id(user_id)
+        message = Message(user_id=task.creator_id, content=f'用户 {user.username} 退出了您的任务 {task.title}')
         db.session.add(message)
         db.session.commit()
         # 不退还乙方押金
@@ -116,14 +124,14 @@ def review_participate():  # 甲方审批乙方的申请
         participate.status = ParticipateStatus.ONGOING.value
         db.session.commit()
         # 发消息给乙方　申请已通过
-        message = Message(user_id=participator_id, content=f'您关于任务{task.title}的申请已通过')
+        message = Message(user_id=participator_id, content=f'您对任务 {task.title} 的申请已通过')
         db.session.add(message)
         db.session.commit()
     else:   # 不同意乙方参与任务
         db.session.delete(participate)
         db.session.commit()
         # 发消息给乙方 申请未通过
-        message = Message(user_id=participator_id, content=f'您关于任务{task.title}的申请未通过')
+        message = Message(user_id=participator_id, content=f'您对任务　{task.title}　的申请未通过')
         db.session.add(message)
         db.session.commit()
         # 退还乙方押金
@@ -139,19 +147,21 @@ def finish_participate():   # 乙方确认完成任务
     task_id = form.get('task_id')
     if not task_id:
         return jsonify(error='请指定任务'), 400
-    task = Task.get(task_id=task_id)
+    task = Task.get_by_id(task_id)
     if not task:
         return jsonify(error='任务不存在'), 400
     participate = Participate.get(user_id=user_id, task_id=task_id)
-    if not participate or participate.status == ParticipateStatus.APPLYING.value:
+    if not participate or participate[0].status == ParticipateStatus.APPLYING.value:
         return jsonify(error='未参与该任务'), 400
     participate = participate[0]
     if participate.status == ParticipateStatus.FINISH.value:
         return jsonify(error='已完成该任务')
-    participate.status = ParticipateStatus.FINISH.value
+    participate.status = ParticipateStatus.CHECK.value
     db.session.commit()
     # 发消息告知甲方 乙方完成任务
-    message = Message(user_id=task.creator_id, content=f'有人已完成任务{task.title}')
+    user = User.get_by_id(user_id)
+    message = Message(user_id=task.creator_id, content=f'用户 {user.username} 已完成任务 {task.title}, 请进行验收',
+                      msg_type=MessageType.FINISH.value, send_from=user.id)
     db.session.add(message)
     db.session.commit()
     return jsonify(data='确认成功'), 200

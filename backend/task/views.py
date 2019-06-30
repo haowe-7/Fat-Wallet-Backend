@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_restful import Resource
-from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus
+from backend.models import db, Task, User, Participate, ParticipateStatusCN, ParticipateStatus, MessageType
+from backend.file.helpers import upload_file
 from backend.models import Message, Collect, Comment
 from backend.auth.helpers import auth_helper
 from backend.celery.config import celery
@@ -33,6 +34,13 @@ class TaskResource(Resource):
             tasks = Task.get(creator_id=creator_id, title=title, task_type=task_type,
                              min_reward=min_reward, max_reward=max_reward,
                              offset=offset, limit=limit)
+            if len(tasks) != 1:  # 按发布时间逆序
+                for i in range(0, len(tasks) - 1):
+                    for j in range(i + 1, len(tasks)):
+                        if tasks[i].id < tasks[j].id:
+                            t = tasks[i]
+                            tasks[i] = tasks[j]
+                            tasks[j] = t
         result = [{"task_id": task.id, "title": task.title, "task_type": task.task_type,
                    "reward": task.reward, "description": task.description,
                    "due_time": task.due_time.strftime("%Y-%m-%d %H:%M"),
@@ -47,6 +55,9 @@ class TaskResource(Resource):
             for p in participators:
                 user = User.get(user_id=p["user_id"])[0]
                 p["username"] = user.username
+                p["phone"] = user.phone
+                p["email"] = user.email
+                p["avatar"] = user.avatar.decode() if user.avatar else None
             value["participators"] = participators
             user_id = auth_helper()
             collect = Collect.get(user_id=user_id, task_id=value['task_id'])
@@ -120,7 +131,7 @@ class TaskResource(Resource):
             ids = []
             for participate in participates:
                 ids.append(participate.id)
-                message = Message(user_id=participate.user_id, content=f'您申请参与的任务"{task.title}"有改动的信息，申请取消')
+                message = Message(user_id=participate.user_id, content=f'您申请参与的任务 "{task.title}" 有改动，请确认并重新申请')
                 db.session.add(message)
                 db.session.commit()
                 # 把押金还给申请者
@@ -145,10 +156,9 @@ class TaskResource(Resource):
                 extra = json.dumps(extra)
             except Exception:
                 return dict(error='请指定正确的任务内容'), 400
-        image = form.get('image')
         Task.patch(task_id=task_id, title=title, task_type=task_type, reward=reward,
                    description=description, due_time=due_time,
-                   max_participate=max_participate, extra=extra, image=image)
+                   max_participate=max_participate, extra=extra)
         return dict(data='修改任务成功'), 200
     
     def delete(self):
@@ -187,58 +197,6 @@ class TaskResource(Resource):
         return dict(data='取消任务成功'), 200
 
 
-# @blueprint.route('/open', methods=['POST'])
-# def open_task():
-#     form = request.get_json(True, True)
-#     user_id = auth_helper()
-#     task_id = form.get("task_id")
-#     if not task_id:
-#         return jsonify(error='任务ID不能为空'), 400
-#     task = Task.get(task_id=task_id)
-#     if not task:
-#         return jsonify(error='该任务不存在'), 400
-#     task = task[0]
-#     if task.creator_id != user_id:
-#         return jsonify(error='权限不足'), 403
-#     if task.start_time.strftime("%Y-%m-%d %H:%M") < get_cur_time():
-#         return jsonify(error='任务开始时间已过'), 400
-#     if task.status:
-#         return jsonify(error='该任务已发布'), 400
-#     task.status = True
-#     db.session.commit()
-#     return jsonify(data='发布任务成功'), 200
-
-
-# @blueprint.route('/close', methods=['POST'])
-# def close_task():
-#     form = request.get_json(True, True)
-#     user_id = auth_helper()
-#     task_id = form.get("task_id")
-#     if not task_id:
-#         return jsonify(error='任务ID不能为空'), 400
-#     task = Task.get(task_id=task_id)
-#     if not task:
-#         return jsonify(error='该任务不存在'), 400
-#     task = task[0]
-#     if task.creator_id != user_id:
-#         return jsonify(error='权限不足'), 403
-#     if not task.status:
-#         return jsonify(error='该任务尚未启用'), 400
-#     if get_cur_time() < task.start_time.strftime("%Y-%m-%d %H:%M"):
-#         task.status = False
-#         # 关闭任务将清空申请中和申请通过的乙方
-#         for p in Participate.get(task_id=task_id):
-#             # TODO 发消息给乙方，该任务已关闭
-#             db.session.delete(p)
-#         db.session.commit()
-#         return jsonify(data='关闭任务成功'), 200
-#     if not Participate.get(task_id=task_id, status=ParticipateStatus.ONGOING.value):
-#         task.status = False
-#         db.session.commit()
-#         return jsonify(data='关闭任务成功'), 200
-#     return jsonify(error='该任务已开始且参与人数不为0，无法取消'), 400
-
-
 @celery.task()
 def update_task_status():   # 检查任务是否到期
     tasks = Task.get()
@@ -252,7 +210,7 @@ def update_task_status():   # 检查任务是否到期
                 if participate.status == ParticipateStatus.APPLYING.value:
                     # 取消申请，发消息告知乙方并退还押金
                     ids.append(participate.id)
-                    message = Message(user_id=participate.user_id, content=f'您申请的任务{task.title}截止时间已过，申请已取消')
+                    message = Message(user_id=participate.user_id, content=f'您申请的任务 {task.title} 截止时间已过，申请已取消')
                     db.session.add(message)
                     db.session.commit()
                     change_balance(participate.user_id, PLEDGE)
@@ -260,7 +218,7 @@ def update_task_status():   # 检查任务是否到期
                     # 乙方任务失败，改变参与状态，不退还押金并发送消息
                     participate.status = ParticipateStatus.FAILED.value
                     db.session.commit()
-                    message = Message(user_id=participate.user_id, content=f'您正在进行的任务{task.title}截止时间已过，您未完成任务，无法退还押金')
+                    message = Message(user_id=participate.user_id, content=f'您正在进行的任务 {task.title} 截止时间已过，您未完成任务，无法退还押金')
                     db.session.add(message)
                     db.session.commit()
                 elif participate.status == ParticipateStatus.FINISH.value:
@@ -271,7 +229,7 @@ def update_task_status():   # 检查任务是否到期
             db.session.commit()
             # 退还甲方剩余押金并发送消息
             change_balance(task.creator_id, (task.max_participate - count) * task.reward)
-            message = Message(user_id=task.creator_id, content=f'您发起的任务{task.title}截止时间已过，剩余押金已退还')
+            message = Message(user_id=task.creator_id, content=f'您发起的任务 {task.title} 截止时间已过，剩余押金已退还')
             db.session.add(message)
             db.session.commit()
 
@@ -315,14 +273,15 @@ def review_task():  # 甲方审核乙方的任务完成结果
     if not participate:
         return jsonify(error='用户未参与此任务'), 400
     participate = participate[0]
-    if participate.status != ParticipateStatus.FINISH.value:
+    if participate.status != ParticipateStatus.CHECK.value:
         return jsonify(error='用户未完成此任务'), 400
     if not view or (view != 'yes' and view != 'no'):
         return jsonify(error='请指定正确的审核结果'), 400
     if view == 'yes':   # 甲方满意，审核通过
         # 发消息告知乙方
         message = Message(user_id=participator_id,
-                          content=f'您参与的任务{task.title}完成情况通过审核，赏金和押金将送至您的账户')
+                          content=f'您参与的任务 {task.title} 完成情况通过审核，赏金和押金将送至您的账户')
+        participate.status = ParticipateStatus.FINISH.value
         db.session.add(message)
         db.session.commit()
         # 支付乙方reward
@@ -332,7 +291,8 @@ def review_task():  # 甲方审核乙方的任务完成结果
     else:   # 甲方不满意，审核不通过
         # 发消息告知乙方
         message = Message(user_id=participator_id,
-                          content=f'您参与的任务{task.title}完成情况未通过审核，暂时无法获得赏金和押金')
+                          content=f'您参与的任务 {task.title} 完成情况未通过审核，暂时无法获得赏金和押金',
+                          msg_type=MessageType.COMPLAIN.value)
         db.session.add(message)
         db.session.commit()
     return jsonify(data='审核完成'), 200
@@ -360,10 +320,30 @@ def appeal_task():  # 乙方(是否)申诉甲方的审核结果
         return jsonify(error='未完成该任务'), 400
     if view == 'yes':   # 确认申诉
         # 发消息给admin
-        message = Message(user_id=ADMIN_ID, content=f'关于任务{task.title}有新的申诉信息')
+        user = User.get_by_id(user_id)
+        message = Message(user_id=ADMIN_ID, content=f'用户 {user.username}　对任务 {task.title} 的结果进行申诉')
         db.session.add(message)
         db.session.commit()
     else:   # 不申诉
         # 不退还乙方押金
         pass
     return jsonify(data='申诉完成'), 200
+
+
+@blueprint.route('/image', methods=['POST'])
+def update_image():
+    user_id = auth_helper()
+    task_id = request.args.get("task_id")
+    if not task_id:
+        return jsonify(error="任务ID不能为空"), 400
+    task = Task.get_by_id(task_id=task_id)
+    if not task:
+        return jsonify(error="该任务不存在"), 400
+    if task.creator_id != user_id:
+        return jsonify(error="权限不足"), 403
+    flag, msg = upload_file(f"task-{task_id}")
+    if not flag:
+        return jsonify(error=msg), 400
+    task.image = msg
+    db.session.commit()
+    return jsonify(data=msg), 200

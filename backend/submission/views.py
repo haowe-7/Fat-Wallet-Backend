@@ -11,7 +11,7 @@ blueprint = Blueprint('submission', __name__)
 
 class SubmissionResource(Resource):
     def get(self):
-        user_id = auth_helper()
+        user_id = request.args.get('user_id')
         task_id = request.args.get('task_id')
         submissions = Submission.get(user_id=user_id, task_id=task_id)
         result = [{"id": submission.id,
@@ -25,6 +25,8 @@ class SubmissionResource(Resource):
         form = request.get_json(True, True)
         task_id = form.get('task_id')
         answer = form.get('answer')
+        if not answer:
+            return dict(error='问卷不能为空'), 400
         if not task_id:
             return dict(error='请指定任务'), 400
         task = Task.get(task_id=task_id)
@@ -33,14 +35,17 @@ class SubmissionResource(Resource):
         participates = Participate.get(user_id=user_id, task_id=task_id)
         if not participates or (participates and participates[0].status == ParticipateStatus.APPLYING.value):
             return dict(error='未参与该任务'), 403
+        print("hi")
         try:
             answer = json.dumps(answer)
         except Exception:
             return dict(error='请提交正确的答案'), 400
         try:
             submission = Submission(user_id=user_id, task_id=task_id, answer=answer)
+            participates[0].status = ParticipateStatus.CHECK.value
             db.session.add(submission)
             db.session.commit()
+            print(answer)
         except exc.IntegrityError as e:
             logging.error(f'submit answer failed, msg: {e}')
             if re.search(r"Duplicate entry '\S*' for key '\S*'", e.orig.args[1]):
